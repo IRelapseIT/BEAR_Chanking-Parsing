@@ -1,8 +1,12 @@
-param([int]$Port = 8765, [int]$Workers = 1)
+param(
+    [int]$Port = 8765,
+    [int]$Workers = 1,
+    [string]$Python = "python",
+    [Parameter(Mandatory=$true)][string]$Upstream,
+    [Parameter(Mandatory=$true)][string]$ParserPython,
+    [Parameter(Mandatory=$true)][string]$Tokenizer
+)
 $ErrorActionPreference = 'Stop'
-$demoPython = Join-Path $PSScriptRoot '../bear-text-beta/.venv/Scripts/python.exe'
-if (-not (Test-Path -LiteralPath $demoPython)) { throw 'Python окружение не найдено. См. DEMO.md.' }
-if (-not $env:BEAR_TESSERACT -and (Test-Path -LiteralPath 'C:/msys64/ucrt64/bin/tesseract.exe')) {
-    $env:BEAR_TESSERACT = 'C:/msys64/ucrt64/bin/tesseract.exe'
-}
-& $demoPython (Join-Path $PSScriptRoot 'demo.py') --port $Port --workers $Workers
+& $Python (Join-Path $PSScriptRoot 'demo.py') --port $Port --workers $Workers `
+    --upstream $Upstream --parser-python $ParserPython --tokenizer $Tokenizer
+exit $LASTEXITCODE

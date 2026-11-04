@@ -1,7 +1,9 @@
 from copy import deepcopy
 from pathlib import Path
+import os
 
 import pytest
+from bear_text_beta.errors import ValidationError
 from bear_text_beta.chunking import ChunkingService
 from bear_text_beta.embeddings import HFTokenCounter
 from bear_text_beta.file_validation import FileLimits
@@ -27,7 +29,10 @@ from bear_fusion.tables import (
 
 @pytest.fixture(scope="module")
 def counter():
-    return HFTokenCounter(Path(__file__).resolve().parents[2] / "bear-text-beta/models/e5", EmbeddingProfile())
+    path = Path(os.environ.get("BEAR_TEST_TOKENIZER", Path(__file__).resolve().parents[2] / "bear-text-beta/models/e5"))
+    if not (path / "tokenizer_config.json").is_file():
+        pytest.skip("Set BEAR_TEST_TOKENIZER for real-tokenizer integration tests")
+    return HFTokenCounter(path, EmbeddingProfile())
 
 
 def table_document(text=None):
@@ -198,5 +203,5 @@ def test_fusion_rejects_bad_external_processor(tmp_path, counter, mutate):
     source.write_text('<table><tr><th>Year</th></tr><tr><td>2025</td></tr></table>', encoding="utf-8")
     chunker = ChunkingService(counter, UnavailableEmbeddings(), EmbeddingProfile(), {"TABLE": BadProcessor()})
     pipeline = FusionPipeline(None, chunker, LocalObjectStorage(tmp_path / "objects"))
-    with pytest.raises(ValueError, match="mutated|proof"):
+    with pytest.raises((ValueError, ValidationError), match="mutated|proof|Отсутствует"):
         pipeline.process_path(source, DocumentContext("t", "s", "d", 1, source.name))

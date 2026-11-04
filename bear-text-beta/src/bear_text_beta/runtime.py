@@ -31,11 +31,14 @@ class Services:
         else:
             self.profile = load_profile(Path(model_dir))
             self.counter = HFTokenCounter(Path(model_dir), self.profile)
-        extra_parsers = None
-        if test_counter:
-            from .parsing import HTMLParser, TXTParser
-            extra_parsers = {".txt": TXTParser(allow_cp1251), ".html": HTMLParser(allow_cp1251),
-                             ".htm": HTMLParser(allow_cp1251)}
+        extra_parsers = {}
+        external_processors = {}
+        from importlib.util import find_spec
+        if find_spec("bear_fusion") is not None:
+            from bear_fusion.markdown_adapter import StructuredMarkdownParser
+            from bear_fusion.tables import TableProcessor
+            extra_parsers[".md"] = StructuredMarkdownParser()
+            external_processors["TABLE"] = TableProcessor(self.counter)
         self.object_storage = LocalObjectStorage(self.state_dir / "objects")
         self.parser = ParsingPipeline(self.state_dir / "assets", allow_cp1251,
                                       extra_parsers=extra_parsers,
@@ -47,13 +50,19 @@ class Services:
             server_model=os.getenv("BEAR_INFINITY_MODEL", "bear-e5-small"),
             api_key=os.getenv("BEAR_INFINITY_API_KEY"))
         chunker_url = os.getenv("BEAR_CHUNKER_URL")
-        self.chunker = RemoteChunkingService(chunker_url) if chunker_url else ChunkingService(
-            self.counter, self.embeddings, self.profile)
+        self.external_processors = external_processors
+        validators = {kind: processor for kind, processor in external_processors.items()
+                      if callable(getattr(processor, "validate", None))}
+        self.chunker = (RemoteChunkingService(chunker_url, counter=self.counter,
+                                            embedding_profile=self.profile, external_validators=validators)
+                        if chunker_url else ChunkingService(
+                            self.counter, self.embeddings, self.profile, external_processors))
         self.vectors = QdrantVectorStore(os.getenv("BEAR_QDRANT_URL", "http://127.0.0.1:6333"),
                                         os.getenv("BEAR_QDRANT_COLLECTION", "bear_text_e5_small_v1"),
                                         self.profile.vector_dimension,
                                         api_key=os.getenv("BEAR_QDRANT_API_KEY"))
-        self.indexer = IndexingService(self.manifest, self.vectors, self.embeddings, self.counter, self.profile)
+        self.indexer = IndexingService(self.manifest, self.vectors, self.embeddings, self.counter,
+                                      self.profile, external_validators=validators)
 
     def process(self, data: bytes, context: DocumentContext,
                 profile: ProcessingProfile) -> ProcessingResult:
@@ -70,7 +79,10 @@ class Services:
             stream, context.filename, key, self.object_storage, context.checksum)
 
     def process_stored(self, stored: StoredObject, context: DocumentContext,
-                       profile: ProcessingProfile, generation_id: str | None = None) -> ProcessingResult:
+                       profile: ProcessingProfile, generation_id: str | None = None, *,
+                       processing_claim: tuple[str, str] | None = None) -> ProcessingResult:
+        if processing_claim is not None:
+            self.manifest.assert_processing_claim(*processing_claim)
         if generation_id:
             from .errors import StorageError
             try:
@@ -84,13 +96,20 @@ class Services:
         with self.object_storage.get_stream(stored.object_key) as source:
             data = source.read(self.parser.max_file_bytes + 1)
         document = self.parser.parse(data, context)
+        for processor in self.external_processors.values():
+            if hasattr(processor, "budget"):
+                processor.budget = min(profile.target_tokens, profile.max_tokens,
+                                       self.profile.max_input_tokens)
         result = self.chunker.process(document, profile, generation_id)
         result.metrics["original_object_key"] = stored.object_key
         result.metrics["original_size_bytes"] = stored.size_bytes
         import tracemalloc
         if tracemalloc.is_tracing():
             result.metrics["python_peak_allocated_bytes"] = tracemalloc.get_traced_memory()[1]
-        self.manifest.save(result)
+        if processing_claim is None:
+            self.manifest.save(result)
+        else:
+            self.manifest.save_processing_result(*processing_claim, result)
         return result
 
     def close(self):

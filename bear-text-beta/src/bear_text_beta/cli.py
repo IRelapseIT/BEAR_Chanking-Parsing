@@ -26,6 +26,8 @@ def main(argv=None):
     parser.add_argument("--test-counter", action="store_true", help="Тестовый счётчик; индексация запрещена")
     parser.add_argument("--allow-cp1251", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)
+    doctor = sub.add_parser("doctor", help="Проверить установку без сети и запуска сервисов")
+    doctor.add_argument("--require-model", action="store_true")
     process = sub.add_parser("process")
     process.add_argument("file", type=Path)
     process.add_argument("--tenant", default="local")
@@ -58,6 +60,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     runtime = None
     try:
+        if args.command == "doctor":
+            from .doctor import diagnose
+            report = diagnose(args.model_dir)
+            print_json(report)
+            return 1 if args.require_model and not report["model"]["tokenizer_ready"] else 0
         if args.command == "prepare-model":
             print_json(prepare_model(Path(args.model_dir), weights=args.weights))
             return 0

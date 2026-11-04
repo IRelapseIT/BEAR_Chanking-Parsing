@@ -89,6 +89,9 @@ def test_external_processor_contract(parsed, counter, embeddings, profile):
     class Tables:
         def process(self, block, context):
             return [PreparedFragment("A: 1", [SourceSpan(block.id, 0, 0)])]
+        def validate(self, document, chunks, counter, maximum):
+            if [chunk.text for chunk in chunks] != ["A: 1"]:
+                raise ValidationError("Table value/header contract violated")
     document = parsed("| A |\n| --- |\n| 1 |\n", "document.md")
     result = ChunkingService(counter, embeddings, profile, {"TABLE": Tables()}).process(document)
     assert result.completeness == "complete"

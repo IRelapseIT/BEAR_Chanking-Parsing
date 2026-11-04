@@ -32,11 +32,15 @@ class QdrantVectorStore:
         if self._collection_ready:
             return
         path = f"collections/{self.collection}"
-        response = self.client.get(path)
-        if response.status_code == 404:
-            self.request("PUT", path, json={"vectors": {"size": self.dimension, "distance": "Cosine"}})
-            response = self.client.get(path)
         try:
+            response = self.client.get(path)
+            if response.status_code == 404:
+                # Another worker may create the collection between our GET and PUT.
+                created = self.client.put(path, json={"vectors": {
+                    "size": self.dimension, "distance": "Cosine"}})
+                if not created.is_success and created.status_code not in {400, 409}:
+                    created.raise_for_status()
+                response = self.client.get(path)
             response.raise_for_status()
             config = response.json()["result"]["config"]["params"]["vectors"]
             if config["size"] != self.dimension or config["distance"] != "Cosine":
@@ -93,12 +97,13 @@ class QdrantVectorStore:
 
 
 class IndexingService:
-    def __init__(self, manifest, vectors, embeddings, counter, embedding_profile):
+    def __init__(self, manifest, vectors, embeddings, counter, embedding_profile, external_validators=None):
         self.manifest = manifest
         self.vectors = vectors
         self.embeddings = embeddings
         self.counter = counter
         self.embedding_profile = embedding_profile
+        self.external_validators = external_validators or {}
 
     def index(self, result):
         if isinstance(self.counter, CharacterTokenCounter):
@@ -111,7 +116,8 @@ class IndexingService:
             profile, result.parsed_document.parser_profile)
         if result.processing_profile_id != expected or result.metrics.get("token_counter") != type(self.counter).__name__:
             raise ValidationError("Processing profile checkpoint несовместим с текущим runtime")
-        ChunkValidator(self.counter, min(profile.max_tokens, self.embedding_profile.max_input_tokens)).validate(result)
+        ChunkValidator(self.counter, min(profile.max_tokens, self.embedding_profile.max_input_tokens),
+                       external_validators=self.external_validators).validate(result)
         if not result.chunks:
             raise ValidationError("Нет пригодных чанков для индексации")
         self.manifest.save(result)

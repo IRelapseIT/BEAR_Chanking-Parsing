@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import asdict
 from pathlib import Path
 from types import SimpleNamespace
@@ -56,7 +57,7 @@ def test_cli_process_export_and_compare(tmp_path, capsys):
 
 
 def test_real_e5_tokenizer_preservation(tmp_path, parser, context):
-    model_dir = Path(__file__).parents[1] / "models" / "e5"
+    model_dir = Path(os.environ.get("BEAR_TEST_TOKENIZER", Path(__file__).parents[1] / "models" / "e5"))
     if not (model_dir / "bear-model.json").exists():
         pytest.skip("Optional cached tokenizer: run bear prepare-model")
     from bear_text_beta.chunking import ChunkingService, ChunkValidator
@@ -104,7 +105,7 @@ def test_api_index_search_health_and_errors(parsed, chunker, embeddings):
 
 
 def test_real_tokenizer_with_semantic_adapter(parser, context):
-    model_dir = Path(__file__).parents[1] / "models" / "e5"
+    model_dir = Path(os.environ.get("BEAR_TEST_TOKENIZER", Path(__file__).parents[1] / "models" / "e5"))
     if not (model_dir / "bear-model.json").exists():
         pytest.skip("Optional cached tokenizer")
     from conftest import TestEmbeddings

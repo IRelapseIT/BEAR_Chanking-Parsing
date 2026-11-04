@@ -215,9 +215,10 @@ class ChunkContextBuilder:
 
 
 class ChunkValidator:
-    def __init__(self, counter, maximum):
+    def __init__(self, counter, maximum, external_validators=None):
         self.counter = counter
         self.maximum = maximum
+        self.external_validators = dict(external_validators or {})
 
     def validate(self, result: ProcessingResult) -> None:
         blocks = {block.id: block for block in result.parsed_document.blocks}
@@ -225,6 +226,7 @@ class ChunkValidator:
             raise ValidationError("Duplicate block IDs")
         covered = {block_id: [] for block_id in blocks}
         external_covered = set()
+        external_types = set()
         seen = set()
         if result.context != result.parsed_document.context or result.context.document_version < 1:
             raise ValidationError("Некорректный контекст документа")
@@ -242,6 +244,16 @@ class ChunkValidator:
                 raise ValidationError("Неверный token_count или превышение бюджета")
             if not chunk.source_spans:
                 raise ValidationError("У чанка нет источников")
+            source_blocks = [blocks.get(span.block_id) for span in chunk.source_spans]
+            if any(block is None for block in source_blocks):
+                raise ValidationError("Неизвестный SourceSpan")
+            source_types = {block.type for block in source_blocks}
+            prepared_external = source_types != {"TEXT"}
+            if prepared_external and ("TEXT" in source_types or len(source_types) != 1
+                                      or chunk.strategy != "external"):
+                raise ValidationError("Нельзя смешивать текстовые и внешние источники чанка")
+            if any(chunk.section_path != block.section_path for block in source_blocks):
+                raise ValidationError("Раздел чанка не соответствует источнику")
             text_cursor = 0
             for span in chunk.source_spans:
                 block = blocks.get(span.block_id)
@@ -251,6 +263,7 @@ class ChunkValidator:
                     if not 0 <= span.start_char <= span.end_char <= len(block.text):
                         raise ValidationError("Некорректный внешний SourceSpan")
                     external_covered.add(block.id)
+                    external_types.add(block.type)
                     continue
                 if not 0 <= span.start_char < span.end_char <= len(block.text):
                     raise ValidationError("Некорректный SourceSpan")
@@ -263,13 +276,15 @@ class ChunkValidator:
                     raise ValidationError("Исходный текст не соответствует чанку")
                 text_cursor = found + len(source_text)
                 covered[block.id].append((span.start_char, span.end_char))
-            if chunk.strategy != "external" and chunk.text[text_cursor:].strip():
+            if not prepared_external and chunk.text[text_cursor:].strip():
                 raise ValidationError("Чанк содержит текст без источника")
             if chunk.embedding_text != ChunkContextBuilder.embedding_text(
                     chunk.text, chunk.section_path, self.counter):
                 raise ValidationError("Embedding text не соответствует тексту и контексту")
         deferred = {block.id for block in result.deferred_blocks}
-        if not deferred <= blocks.keys() or any(blocks[key].type == "TEXT" for key in deferred):
+        if (len(deferred) != len(result.deferred_blocks) or not deferred <= blocks.keys()
+                or any(blocks[key].type == "TEXT" for key in deferred)
+                or any(block != blocks[block.id] for block in result.deferred_blocks)):
             raise ValidationError("Некорректные deferred blocks")
         for block in blocks.values():
             if block.id in deferred:
@@ -287,6 +302,15 @@ class ChunkValidator:
         expected = "partial" if deferred else "complete"
         if result.completeness != expected:
             raise ValidationError("Completeness не соответствует deferred blocks")
+        for block_type in sorted(external_types):
+            validator = self.external_validators.get(block_type)
+            validate = getattr(validator, "validate", validator)
+            if not callable(validate):
+                raise ValidationError(f"Отсутствует валидатор внешнего содержимого: {block_type}")
+            try:
+                validate(result.parsed_document, result.chunks, self.counter, self.maximum)
+            except (ValueError, TypeError, KeyError) as exc:
+                raise ValidationError(f"Внешнее содержимое не прошло проверку: {block_type}") from exc
 
 
 class ChunkingService:
@@ -297,6 +321,12 @@ class ChunkingService:
         self.provider = provider
         self.embedding_profile = embedding_profile
         self.external_processors = external_processors or {}
+
+    @property
+    def external_validators(self):
+        # Processors may be registered by a composition root after construction.
+        return {kind: processor for kind, processor in self.external_processors.items()
+                if callable(getattr(processor, "validate", None))}
 
     def profile_id(self, profile, parser_profile):
         config = {"policy": "adaptive-v1", "profile": asdict(profile), "parser": parser_profile,
@@ -440,5 +470,5 @@ class ChunkingService:
                      "inference": {key: value - initial_metrics.get(key, 0)
                                    for key, value in getattr(self.provider, "metrics", {}).items()}},
         )
-        ChunkValidator(self.counter, maximum).validate(result)
+        ChunkValidator(self.counter, maximum, self.external_validators).validate(result)
         return result

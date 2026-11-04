@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import codecs
 import hashlib
 import io
 import zipfile
@@ -90,7 +91,9 @@ class FileValidator:
                 raise ParseError("Checksum не соответствует содержимому файла")
             if suffix == ".docx" and bytes(reader.prefix[:4]) != b"PK\x03\x04":
                 raise ParseError("DOCX не является ZIP-архивом")
-            if suffix in self.TEXT_EXTENSIONS and b"\x00" in reader.prefix:
+            unicode_bom = bytes(reader.prefix).startswith((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE,
+                                                         codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE))
+            if suffix in self.TEXT_EXTENSIONS and b"\x00" in reader.prefix and not unicode_bom:
                 raise ParseError("Бинарное содержимое в текстовом файле")
             return StoredObject(object_key, reader.size, checksum)
         except Exception:

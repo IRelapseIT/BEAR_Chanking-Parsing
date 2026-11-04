@@ -2,6 +2,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from itertools import pairwise
 from pathlib import Path
+import os
 
 import pytest
 from bear_text_beta.chunking import ChunkingService
@@ -17,7 +18,10 @@ from bear_fusion.tables import TableProcessor, validate_table_chunks
 
 @pytest.fixture(scope="module")
 def counter():
-    return HFTokenCounter(Path(__file__).resolve().parents[2] / "bear-text-beta/models/e5", EmbeddingProfile())
+    path = Path(os.environ.get("BEAR_TEST_TOKENIZER", Path(__file__).resolve().parents[2] / "bear-text-beta/models/e5"))
+    if not (path / "tokenizer_config.json").is_file():
+        pytest.skip("Set BEAR_TEST_TOKENIZER for real-tokenizer integration tests")
+    return HFTokenCounter(path, EmbeddingProfile())
 
 
 def process(text, counter, document_id="d", version=1):

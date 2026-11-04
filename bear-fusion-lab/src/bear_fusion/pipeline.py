@@ -106,6 +106,8 @@ class FusionPipeline:
             processor.budget = budget
         result = self.chunker.process(document, profile)
         if hasattr(result, "chunks"):
+            if any(b.metadata.get("header_context_truncated") for b in document.blocks):
+                result.warnings.append("table_header_context_truncated:full_context_retained_in_metadata")
             for block in document.blocks:
                 if block.type == "TABLE" and table_evidence[block.id] != tuple(tuple(vars(cell).items()) for cell in canonical(block)[0]):
                     raise ValueError("External processor mutated canonical source cells")

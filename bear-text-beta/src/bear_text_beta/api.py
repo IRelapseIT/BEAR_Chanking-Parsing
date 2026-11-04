@@ -1,8 +1,8 @@
 import json
 from contextlib import asynccontextmanager
 from threading import Lock
-from typing import Annotated
-from uuid import uuid4
+from typing import Annotated, Literal
+from uuid import UUID, uuid4
 
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.responses import JSONResponse
@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 
 from .errors import BearError, EmbeddingError, ServiceUnavailableError, StorageError
+from .health import runtime_health
 from .models import DocumentContext, ProcessingProfile
 from .runtime import default_services
 from .serialization import load_result, result_adapter
@@ -17,7 +18,7 @@ from .upload_limit import RequestSizeLimitMiddleware
 
 
 class IndexRequest(BaseModel):
-    generation_id: str | None = None
+    generation_id: UUID | None = None
     result: dict | None = None
 
 
@@ -38,7 +39,7 @@ def create_app(services=None):
         if owned and app.state.services is not None:
             app.state.services.close()
 
-    app = FastAPI(title="BEAR Text Beta", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="BEAR Text Beta", version="0.2.0", lifespan=lifespan)
     app.add_middleware(RequestSizeLimitMiddleware, max_body_bytes=51 * 1024 * 1024)
     app.state.services = services
 
@@ -91,7 +92,7 @@ def create_app(services=None):
             if bool(request.generation_id) == bool(request.result):
                 raise ValidationError("Укажите generation_id либо result")
             if request.generation_id:
-                return runtime.indexer.retry(request.generation_id)
+                return runtime.indexer.retry(str(request.generation_id))
             try:
                 result = load_result(request.result)
             except (ValueError, TypeError) as exc:
@@ -110,16 +111,21 @@ def create_app(services=None):
     def health():
         with lock:
             try:
-                runtime = get_services()
-                dedoc = getattr(getattr(runtime, "parser", None), "parsers", {}).get(".docx")
-                chunker = getattr(runtime, "chunker", None)
-                return {"status": "ok", "model_ready": True,
-                        "infinity": runtime.embeddings.health(), "qdrant": runtime.vectors.health(),
-                        "dedoc": dedoc.health() if hasattr(dedoc, "health") else {"ready": False},
-                        "chunker": chunker.health() if hasattr(chunker, "health")
-                        else {"ready": True, "mode": "in-process"}}
-            except BearError as exc:
-                return {"status": "ok", "model_ready": False, "detail": str(exc)}
+                return runtime_health(get_services())
+            except (BearError, OSError, ValueError):
+                return {"status": "ok", "model_ready": False,
+                        "capabilities": {key: False for key in ("parse", "chunk", "index", "search")}}
+
+    @app.get("/live")
+    def live():
+        return {"status": "ok"}
+
+    @app.get("/ready")
+    def ready(capability: Literal["parse", "chunk", "index", "search"] = "index"):
+        state = health()
+        available = state["capabilities"].get(capability, False)
+        return JSONResponse(status_code=200 if available else 503,
+                            content={**state, "ready": available, "capability": capability})
 
     return app
 

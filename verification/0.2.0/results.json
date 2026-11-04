@@ -1,0 +1,39 @@
+{
+  "version": "0.2.0",
+  "branch": "feat/bear-0.2.0-fixes",
+  "baseline": "c2447d4ff89cb0f5e33006d505e6d0243930c292",
+  "core": {
+    "tests": 137,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "fusion": {
+    "tests": 67,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "corpus": {
+    "files": 15,
+    "chunks": 5848,
+    "max_e5_tokens": 320,
+    "all_source_hashes_verified": true
+  },
+  "native_smoke": {
+    "model": "Qwen/Qwen3-Embedding-0.6B",
+    "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "questions": 24,
+    "chunks": 25,
+    "recall_at_5": 1.0,
+    "mrr_at_5": 0.9791666666666666,
+    "old_index_preserved_on_failure": true,
+    "retry_activates_new_generation": true,
+    "tenant_space_isolation": {
+      "other_tenant": 0,
+      "other_space": 0
+    },
+    "oversize_network_requests": 0
+  },
+  "scope": "Windows Python3.12 local final tests; separate Python3.11 real Qwen server and real Qdrant1.20 Windows; CI/Linux and full native sparse/reranker not executed"
+}

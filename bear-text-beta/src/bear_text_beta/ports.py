@@ -1,6 +1,7 @@
 from typing import Protocol
 
 from .models import (
+    Chunk,
     ContentBlock,
     DocumentContext,
     EmbeddedChunk,
@@ -27,6 +28,11 @@ class TokenCounter(Protocol):
 
 class ExternalContentProcessor(Protocol):
     def process(self, block: ContentBlock, context: DocumentContext) -> list[PreparedFragment]: ...
+
+    def validate(self, document: ParsedDocument, chunks: list[Chunk],
+                 counter: TokenCounter, maximum: int) -> None:
+        """Prove prepared content against canonical source, including its coverage."""
+        ...
 
 
 class VectorStore(Protocol):

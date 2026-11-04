@@ -1,4 +1,5 @@
 """Canonical cells, hierarchical headers and checked table fragments."""
+import re
 from dataclasses import asdict, dataclass
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
@@ -155,15 +156,37 @@ def context_for(cell, expanded, heads):
     return f"Row {cell.row + 1}" + (f" ({identity})" if identity else "") + f"; {' → '.join(headers) or f'Column {cell.column + 1}'}: "
 
 
+def protected_context(prefix):
+    pattern = (r"(?<!\d)(?:19|20)\d{2}(?!\d)|"
+               r"(?i:(?<![a-zа-я])(?:RUB|USD|EUR|GBP|руб(?:лей|ля)?|млн|тыс|million|billion|kg|кг|%)(?![a-zа-я]))")
+    return list(dict.fromkeys(re.findall(pattern, prefix)))
+
+
 def bounded_prefix(prefix, fits):
-    while prefix and not fits(prefix + "x" * 32):
-        prefix = prefix[:len(prefix) // 2]
-    return prefix
+    if fits(prefix + "x" * 32):
+        return prefix
+    # Keep the leaf qualifier/year/unit at the end, not an arbitrary prefix.
+    # The full context remains in the proof metadata and is searchable separately.
+    stem = prefix.removesuffix(": ")
+    tail = stem.rsplit("; ", 1)[-1]
+    protected = protected_context(prefix)
+    while tail:
+        missing = [item for item in protected if item not in tail]
+        label = "[" + "; ".join(missing) + "] " if missing else ""
+        shortened = "… " + label + tail + ": "
+        if fits(shortened + "x" * 32):
+            return shortened
+        words = tail.split(" ", 1)
+        tail = words[-1] if len(words) > 1 else ""
+    raise ValueError("Table context does not fit model budget")
 
 
 class TableProcessor:
     def __init__(self, counter=None):
         self.counter, self.budget = counter, 320
+
+    def validate(self, document, chunks, counter, maximum):
+        validate_table_chunks(document, chunks, counter, maximum)
 
     def process(self, block, context):
         cells, heads = canonical(block)
@@ -171,13 +194,18 @@ class TableProcessor:
         for cell in cells:
             if not cell.text.strip():
                 continue
-            prefix = "Table headers: " if cell.row < heads else context_for(cell, expanded, heads)
+            full_context = "Table headers: " if cell.row < heads else context_for(cell, expanded, heads)
             fits = (lambda text: self.counter.full_count(ChunkContextBuilder.embedding_text(text, block.section_path, self.counter)) <= self.budget) if self.counter else lambda text: len(text) <= 300
-            prefix = bounded_prefix(prefix, fits)
+            prefix = bounded_prefix(full_context, fits)
+            truncated = prefix != full_context
+            if truncated:
+                block.metadata["header_context_truncated"] = True
             for start, end in SafeTextSplitter(lambda value, fits=fits, prefix=prefix: fits(prefix + value)).split(cell.text):
                 fragments.append(PreparedFragment(prefix + cell.text[start:end], [SourceSpan(block.id, 0, len(block.text))],
                     metadata={"table_block_id": block.id, "cell_id": cell.id, "value_start": start,
-                              "value_end": end, "prefix": prefix, "table_contract": "cells-v1"}))
+                              "value_end": end, "prefix": prefix, "table_contract": "cells-v1",
+                              "header_context_full": full_context,
+                              "header_context_truncated": truncated}))
         # Pack a row when it fits; long cells already have bounded, independently proven slices.
         packed, pending, pending_row = [], [], None
         by_id = {cell.id: cell for cell in cells}
@@ -223,19 +251,38 @@ def validate_table_chunks(document, chunks, counter, budget):
                     raise ValueError("Table fragment has no canonical cell proof")
                 segment_rows.add(cell.row)
                 start, end = meta.get("value_start"), meta.get("value_end")
-                if not isinstance(start, int) or not isinstance(end, int) or not 0 <= start < end <= len(cell.text):
+                if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(cell.text):
                     raise ValueError("Invalid table cell span")
                 expected = "Table headers: " if cell.row < heads else context_for(cell, expanded, heads)
-                fits = lambda text, block=block: counter.full_count(ChunkContextBuilder.embedding_text(text, block.section_path, counter)) <= budget
-                prefix = bounded_prefix(expected, fits)
-                if meta.get("prefix") != prefix:
-                    raise ValueError("Table fragment changes header")
+                prefix = meta.get("prefix")
+                if not isinstance(prefix, str):
+                    raise TypeError("Table fragment changes header")
+                if (meta.get("header_context_full") != expected
+                        or meta.get("header_context_truncated") is not (prefix != expected)):
+                    raise ValueError("Table fragment has no full header context proof")
+                if prefix != expected:
+                    # An independent invariant: terminal semantic qualifier and delimiter
+                    # must remain even if the surrounding description is shortened.
+                    qualifier = expected.removesuffix(": ").split()[-1]
+                    tail = prefix[2:].removesuffix(": ")
+                    label = ""
+                    if tail.startswith("[") and "] " in tail:
+                        label, tail = tail.split("] ", 1)
+                        label += "] "
+                    missing = [item for item in protected_context(expected) if item not in tail]
+                    expected_label = "[" + "; ".join(missing) + "] " if missing else ""
+                    if (not prefix.startswith("… ") or not prefix.endswith(qualifier + ": ")
+                            or not expected.removesuffix(": ").endswith(tail)
+                            or label != expected_label):
+                        raise ValueError("Table fragment loses terminal header qualifier")
                 expected_parts.append(prefix + cell.text[start:end])
                 coverage[cell.id].append((start, end))
             if len(segment_rows) > 1:
                 raise ValueError("Packed table fragment mixes different rows")
             if chunk.text != "\n".join(expected_parts):
                 raise ValueError("Table fragment changes source value")
+            if counter.full_count(chunk.embedding_text) > budget:
+                raise ValueError("Table fragment exceeds model budget")
         for cell_id, spans in coverage.items():
             position = 0
             for start, end in sorted(spans):

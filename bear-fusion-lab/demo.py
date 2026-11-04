@@ -23,6 +23,60 @@ LOCK = threading.Lock()
 STATE = {}
 
 
+def write_json(path, value):
+    temporary = path.with_name(path.name + "." + uuid4().hex + ".tmp")
+    try:
+        temporary.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+        temporary.replace(path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def update_state(job_id, state):
+    with LOCK:
+        write_json(JOBS / job_id / "state.json", state)
+        STATE[job_id] = state
+
+
+def restore_jobs():
+    """Recover durable results; interrupted jobs release capacity instead of hanging."""
+    restored = {}
+    for job in JOBS.iterdir():
+        if not job.is_dir():
+            continue
+        try:
+            UUID(job.name)
+            request = job / "request.json"
+            if not request.is_file() or request.stat().st_size > 1024**2:
+                continue
+            payload = json.loads(request.read_text("utf-8"))
+            if not isinstance(payload, dict) or not isinstance(payload.get("filename"), str):
+                continue
+            state_path = job / "state.json"
+            if state_path.exists() and state_path.stat().st_size > 1024**2:
+                continue
+            state = json.loads(state_path.read_text("utf-8")) if state_path.exists() else {}
+            if not isinstance(state, dict):
+                state = {}
+            if state.get("status") not in {"done", "failed"}:
+                state = ({"status": "done"} if (job / "result.json").is_file() else
+                         {"status": "failed", "error": "interrupted_by_restart"})
+                write_json(state_path, state)
+            restored[job.name] = state
+        except (ValueError, OSError, TypeError):
+            continue  # Incomplete staging is retained for inspection, never queued.
+    with LOCK:
+        STATE.clear()
+        STATE.update(restored)
+
+
+def required_string(body, name):
+    value = body.get(name)
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{name} must be a non-empty string")
+    return value
+
+
 def terminate_tree(process):
     try:
         parent = psutil.Process(process.pid)
@@ -40,11 +94,10 @@ def terminate_tree(process):
 
 def execute(job_id, config):
     job = JOBS / job_id
-    with LOCK:
-        STATE[job_id] = {"status": "running"}
     started = time.monotonic()
     peak = 0
     try:
+        update_state(job_id, {"status": "running"})
         with (job / "worker.log").open("wb") as log:
             process = subprocess.Popen([sys.executable, str(ROOT / "demo_worker.py"), str(job)],
                                        cwd=job, stdout=log, stderr=log)
@@ -76,8 +129,12 @@ def execute(job_id, config):
         status = {"status": "done", "peak_rss_mb": round(peak / 1024**2, 1)}
     except Exception as exc:  # noqa: BLE001 - failed jobs must not stop the queue
         status = {"status": "failed", "error": str(exc)}
-    with LOCK:
-        STATE[job_id] = status
+    try:
+        update_state(job_id, status)
+    except OSError:
+        # A full disk must not keep a reserved slot indefinitely.
+        with LOCK:
+            STATE[job_id] = {"status": "failed", "error": "Unable to persist final job state"}
 
 
 def main():
@@ -93,6 +150,7 @@ def main():
     if min(args.memory_mb, args.timeout) <= 0:
         parser.error("Budgets must be positive")
     JOBS.mkdir(exist_ok=True)
+    restore_jobs()
     pool = ThreadPoolExecutor(max_workers=args.workers)
     config = {"upstream": str(args.upstream.resolve()), "parser_python": str(args.parser_python.resolve()),
               "tokenizer": str(args.tokenizer.resolve()), "memory_mb": args.memory_mb, "timeout": args.timeout}
@@ -144,28 +202,41 @@ def main():
         def do_POST(self):
             if self.headers.get("X-Bear-Demo") != "local":
                 return self.response({"error": "Missing local demo header"}, 403)
+            job_id = None
+            submitted = False
             try:
                 length = int(self.headers.get("Content-Length", "0"))
                 if not 0 < length <= 15 * 1024**2:
                     raise ValueError("Demo upload limit: 10 MiB per file")
                 body = json.loads(self.rfile.read(length))
+                if not isinstance(body, dict):
+                    raise TypeError("Request body must be a JSON object")
                 if self.path in {"/search", "/context"}:
-                    job_id = str(UUID(body["job_id"]))
-                    data = json.loads((JOBS / job_id / "result.json").read_text("utf-8"))
+                    target_id = str(UUID(required_string(body, "job_id")))
+                    data = json.loads((JOBS / target_id / "result.json").read_text("utf-8"))
                     if self.path == "/context":
-                        return self.response(expand_context(data, body["chunk_id"], counter(), int(body.get("max_tokens", 480))))
-                    hits = search(data["result"]["chunks"], body["query"])
+                        maximum = body.get("max_tokens", 480)
+                        if type(maximum) is not int or not 1 <= maximum <= 480:
+                            raise ValueError("max_tokens must be an integer from 1 to 480")
+                        return self.response(expand_context(data, required_string(body, "chunk_id"), counter(), maximum))
+                    if type(body.get("expand", False)) is not bool:
+                        raise ValueError("expand must be a boolean")
+                    hits = search(data["result"]["chunks"], required_string(body, "query"))
                     if body.get("expand"):
                         for hit in hits:
                             hit["expanded_context"] = expand_context(data, hit["chunk"]["id"], counter())
                     return self.response(hits)
                 if self.path != "/jobs":
                     return self.response({"error": "Unknown endpoint"}, 404)
-                filename = Path(body["filename"]).name
-                if (filename != body["filename"] or any(c in filename for c in ':\\/') or
+                supplied_name = required_string(body, "filename")
+                filename = Path(supplied_name).name
+                if (filename != supplied_name or len(filename.encode("utf-8")) > 200
+                        or filename.endswith((".", " ")) or any(ord(c) < 32 for c in filename)
+                        or filename.split(".", 1)[0].upper() in {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
+                        or any(c in filename for c in ':\\/') or
                         Path(filename).suffix.lower() not in {".pdf", ".docx", ".txt", ".md", ".html", ".htm"}):
                     raise ValueError("Unsupported filename")
-                data = base64.b64decode(body["data"], validate=True)
+                data = base64.b64decode(required_string(body, "data"), validate=True)
                 if len(data) > 10 * 1024**2:
                     raise ValueError("Demo upload limit: 10 MiB")
                 with LOCK:
@@ -176,11 +247,23 @@ def main():
                 job = JOBS / job_id
                 job.mkdir()
                 (job / filename).write_bytes(data)
-                (job / "request.json").write_text(json.dumps({**config, "filename": filename}), encoding="utf-8")
+                write_json(job / "request.json", {**config, "filename": filename})
+                update_state(job_id, {"status": "queued"})
                 pool.submit(execute, job_id, config)
+                submitted = True
                 self.response({"job_id": job_id}, 202)
-            except (ValueError, KeyError, OSError) as exc:
+            except (ValueError, KeyError, OSError, TypeError) as exc:
                 self.response({"error": str(exc)}, 400)
+            except RuntimeError as exc:
+                self.response({"error": str(exc)}, 503)
+            finally:
+                if job_id is not None and not submitted:
+                    failed = {"status": "failed", "error": "admission_failed"}
+                    try:
+                        update_state(job_id, failed)
+                    except OSError:
+                        with LOCK:
+                            STATE.pop(job_id, None)
 
     server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     print(f"BEAR demo: http://127.0.0.1:{args.port} — CPU workers={args.workers}", flush=True)

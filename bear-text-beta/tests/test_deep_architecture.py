@@ -44,10 +44,10 @@ def test_docx_attachment_and_zip_limits():
         FileValidator(FileLimits(max_docx_entries=1)).validate_docx(output.getvalue())
 
 
-def test_dedoc_is_default_for_txt_html_docx_and_md_is_local(tmp_path):
+def test_native_text_html_default_and_explicit_dedoc_override(tmp_path):
     parser = ParsingPipeline(tmp_path)
-    assert parser.parsers[".txt"] is parser.parsers[".docx"]
-    assert parser.parsers[".html"] is parser.parsers[".docx"]
+    assert parser.parsers[".txt"] is not parser.parsers[".docx"]
+    assert parser.parsers[".html"] is not parser.parsers[".docx"]
     assert parser.parsers[".md"] is not parser.parsers[".docx"]
     payload = {"schema_version": 1, "blocks": [{"type": "TEXT", "role": "paragraph",
                "text": "Привет", "node_id": "0.0", "line_id": 0, "page": 1}],
@@ -55,6 +55,7 @@ def test_dedoc_is_default_for_txt_html_docx_and_md_is_local(tmp_path):
     parser.parsers[".docx"].client = httpx.Client(
         base_url="http://dedoc", transport=httpx.MockTransport(
             lambda request: httpx.Response(200, json=payload)))
+    parser.parsers[".txt"] = parser.parsers[".docx"]
     result = parser.parse("Привет".encode(), DocumentContext("t", "s", "d", 1, "a.txt"))
     assert result.blocks[0].text == "Привет"
     assert result.parser_profile == "dedoc-2.8-v1"
@@ -62,6 +63,7 @@ def test_dedoc_is_default_for_txt_html_docx_and_md_is_local(tmp_path):
 
 def test_dedoc_service_error_is_retryable(tmp_path):
     parser = ParsingPipeline(tmp_path)
+    parser.parsers[".txt"] = parser.parsers[".docx"]
     parser.parsers[".docx"].client = httpx.Client(
         base_url="http://dedoc", transport=httpx.MockTransport(
             lambda request: httpx.Response(503)))
@@ -87,7 +89,7 @@ def test_processing_jobs_reclaim_and_complete(tmp_path):
     claimed = manifest.claim_next_processing()
     assert claimed["id"] == job_id
     assert claimed["stored"] == asdict(stored)
-    manifest.complete_processing(job_id)
+    manifest.complete_processing(job_id, claimed["claim_token"])
     assert manifest.processing_status(job_id)["status"] == "complete"
     assert manifest.claim_next_processing() is None
 
@@ -114,7 +116,7 @@ def test_api_rejects_oversized_body_before_parsing():
 
 
 def test_dedoc_tree_to_contract_preserves_table_order(tmp_path):
-    from dedoc_service import _dedoc_to_contract
+    from bear_text_beta.dedoc_mapper import dedoc_to_contract
 
     def node(identifier, text, line_id, annotations=None, children=None, line_type="raw_text"):
         return SimpleNamespace(node_id=identifier, text=text, annotations=annotations or [],
@@ -130,6 +132,6 @@ def test_dedoc_tree_to_contract_preserves_table_order(tmp_path):
     root = node("0", "", 0, children=[before, after], line_type="root")
     parsed = SimpleNamespace(content=SimpleNamespace(structure=root, tables=[table], warnings=[]),
                              attachments=[])
-    result = _dedoc_to_contract(parsed, tmp_path, FileLimits())
+    result = dedoc_to_contract(parsed, tmp_path, FileLimits())
     assert [block["type"] for block in result["blocks"]] == ["TEXT", "TABLE", "TEXT"]
     assert result["blocks"][1]["metadata"]["dedoc_uid"] == "u1"

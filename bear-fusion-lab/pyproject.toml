@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bear-fusion-lab"
-version = "0.1.0"
+version = "0.2.0"
 requires-python = ">=3.12,<3.13"
 description = "Experimental upstream parser / BEAR chunking integration"
-dependencies = ["bear-text-beta==0.1.0"]
+dependencies = ["bear-text-beta==0.2.0"]
 
 [project.optional-dependencies]
 demo = ["pdfplumber==0.11.10", "pypdfium2==5.14.0", "Pillow==13.0.0", "psutil==7.2.2"]

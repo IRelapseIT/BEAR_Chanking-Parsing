@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 from markdown_it import MarkdownIt
 
 from .errors import ParseError, ValidationError
@@ -159,6 +159,18 @@ class HTMLParser(TXTParser):
             tag.decompose()
         root = soup.body or soup
 
+        def inline_text(node):
+            # Preserve literal whitespace and inline word fragments; only br introduces a newline.
+            if isinstance(node, Comment):
+                return ""
+            if isinstance(node, NavigableString):
+                return str(node)
+            if node.name == "br":
+                return "\n"
+            if node.name == "img":
+                return ""
+            return "".join(inline_text(child) for child in node.children)
+
         def path(node):
             parts = []
             while isinstance(node, Tag) and node.name != "[document]":
@@ -179,12 +191,12 @@ class HTMLParser(TXTParser):
                 builder.image(node.get("src", ""), source, node.get("alt", ""))
                 return
             if re.fullmatch(r"h[1-6]", node.name or ""):
-                builder.add(node.get_text(), "heading", source, level=int(node.name[1]))
+                builder.add(inline_text(node), "heading", source, level=int(node.name[1]))
                 return
             if node.name in {"pre", "p"}:
                 # Remove images from textual extraction but retain their original locators.
                 images = list(node.find_all("img"))
-                builder.add(node.get_text(), "code" if node.name == "pre" else "paragraph", source,
+                builder.add(inline_text(node), "code" if node.name == "pre" else "paragraph", source,
                             metadata={"links": [a.get("href") for a in node.find_all("a")]})
                 for image in images:
                     visit(image)
@@ -210,7 +222,7 @@ class HTMLParser(TXTParser):
                         flush()
                         visit(child)
                     else:
-                        pending.append(child.get_text())
+                        pending.append(inline_text(child))
             flush()
 
         visit(root)
@@ -248,8 +260,8 @@ class ParsingPipeline:
             dedoc_client = DedocClient(asset_dir=asset_dir, limits=self.limits,
                                        object_storage=object_storage)
         self.parsers = {
-            ".txt": dedoc_client, ".md": MDParser(allow_cp1251),
-            ".html": dedoc_client, ".htm": dedoc_client, ".docx": dedoc_client,
+            ".txt": TXTParser(allow_cp1251), ".md": MDParser(allow_cp1251),
+            ".html": HTMLParser(allow_cp1251), ".htm": HTMLParser(allow_cp1251), ".docx": dedoc_client,
         }
         self.allow_cp1251 = allow_cp1251
         self.parsers.update(extra_parsers or {})

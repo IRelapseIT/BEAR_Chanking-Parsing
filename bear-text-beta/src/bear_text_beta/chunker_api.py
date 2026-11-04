@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 from functools import lru_cache
 from threading import Lock
+from uuid import UUID
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
@@ -12,7 +13,7 @@ from pydantic import BaseModel, TypeAdapter
 
 from .chunking import ChunkingService
 from .embeddings import HFTokenCounter, InfinityEmbeddingProvider, load_profile
-from .errors import BearError
+from .errors import BearError, ValidationError
 from .models import ParsedDocument, ProcessingProfile
 from .upload_limit import RequestSizeLimitMiddleware
 
@@ -20,10 +21,10 @@ from .upload_limit import RequestSizeLimitMiddleware
 class ChunkRequest(BaseModel):
     document: dict
     profile: dict
-    generation_id: str
+    generation_id: UUID
 
 
-app = FastAPI(title="BEAR Chonkie Worker", version="0.1.0")
+app = FastAPI(title="BEAR Chonkie Worker", version="0.2.0")
 app.add_middleware(RequestSizeLimitMiddleware, max_body_bytes=100 * 1024 * 1024)
 CHUNK_LOCK = Lock()
 
@@ -51,13 +52,34 @@ def handle_error(request, exc):
 
 @app.post("/chunk")
 def chunk(request: ChunkRequest):
-    document = TypeAdapter(ParsedDocument).validate_python(request.document)
-    profile = ProcessingProfile(**request.profile)
+    try:
+        document = TypeAdapter(ParsedDocument).validate_python(request.document)
+        profile = ProcessingProfile(**request.profile)
+    except (ValueError, TypeError) as exc:
+        raise ValidationError("Некорректный документ или профиль чанкинга") from exc
     with CHUNK_LOCK:
-        result = get_service().process(document, profile, request.generation_id)
+        result = get_service().process(document, profile, str(request.generation_id))
         return asdict(result)
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "chunker": "chonkie-1.7.0"}
+    from .health import component_health
+    try:
+        service = get_service()
+        return {"status": "ok", "chunker": "chonkie-1.7.0",
+                "ready": service.counter is not None,
+                "model_ready": component_health(service.provider).get("ready") is True}
+    except (BearError, OSError, ValueError):
+        return {"status": "unavailable", "ready": False, "model_ready": False}
+
+
+@app.get("/live")
+def live():
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+def ready():
+    state = health()
+    return JSONResponse(status_code=200 if state["ready"] else 503, content=state)
