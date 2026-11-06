@@ -34,9 +34,21 @@ def run_once(services, *, lease_seconds=600, heartbeat_interval=None) -> bool:
     heartbeat = Thread(target=renew, name=f"bear-lease-{job['id']}", daemon=True)
     heartbeat.start()
     try:
-        services.process_stored(StoredObject(**job["stored"]), DocumentContext(**job["context"]),
+        if job.get("auto_index"):
+            services.manifest.set_processing_phase(job["id"], token, "parsing")
+        result = services.process_stored(StoredObject(**job["stored"]), DocumentContext(**job["context"]),
                                 ProcessingProfile(**job["profile"]), job["id"],
                                 processing_claim=(job["id"], token))
+        if job.get("auto_index"):
+            acceptance = result.metrics["acceptance"]
+            if acceptance["accepted_for_indexing"]:
+                services.manifest.set_processing_phase(job["id"], token, "embedding")
+                services.indexer.index(result, processing_claim=(job["id"], token))
+                services.manifest.mark_published(job["id"])
+                services.manifest.set_processing_phase(job["id"], token, "searchable")
+            else:
+                services.manifest.set_processing_phase(job["id"], token,
+                                                       "failed" if acceptance["status"] == "rejected" else "needs_review")
     except Exception as exc:
         try:
             services.manifest.fail_processing(

@@ -1,0 +1,593 @@
+{
+  "run": "1357f554bd",
+  "documents": 14,
+  "automatic_successes": 10,
+  "success_fraction": 0.7142857142857143,
+  "recall_at_5_all_cases": 0.7142857142857143,
+  "mrr_at_5_all_cases": 0.6785714285714286,
+  "cases": [
+    {
+      "file": "refund.txt",
+      "sha256": "c197b7247ac24e40b5fcdaf9fcbd90efac707859779b047348f8af7e2e9e373a",
+      "bytes": 90,
+      "query": "За сколько дней Норд вернет деньги?",
+      "answer": "12",
+      "kind": "controlled",
+      "job_id": "32ab62f5-4d2d-5cd5-b7dd-15b9bce5261b",
+      "document_id": "1357f554bd-0",
+      "state": {
+        "id": "32ab62f5-4d2d-5cd5-b7dd-15b9bce5261b",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915282.2927523,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 1,
+        "warnings": []
+      },
+      "seconds": 4.149645900004543,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "backup.txt",
+      "sha256": "d1ff7fc5c5c3fcdf867851e29f8c5aa6d64f322a49690435255363b3fdb5b250",
+      "bytes": 74,
+      "query": "Срок хранения архивных резервных копий?",
+      "answer": "43",
+      "kind": "controlled",
+      "job_id": "351768df-3c52-5fcd-af9d-0c4e58ab90f8",
+      "document_id": "1357f554bd-1",
+      "state": {
+        "id": "351768df-3c52-5fcd-af9d-0c4e58ab90f8",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915283.5580502,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 1,
+        "warnings": []
+      },
+      "seconds": 1.0421083999681287,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "access.txt",
+      "sha256": "d8cfe8deb7b573d79696f513fdaf2994fea4247b83604aa122578f824604ee09",
+      "bytes": 90,
+      "query": "Где оформить пропуск в лабораторию?",
+      "answer": "деканат",
+      "kind": "controlled",
+      "job_id": "2df621d4-f2e7-58bd-890f-177c2eae40d4",
+      "document_id": "1357f554bd-2",
+      "state": {
+        "id": "2df621d4-f2e7-58bd-890f-177c2eae40d4",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915284.841717,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 1,
+        "warnings": []
+      },
+      "seconds": 1.2619831999763846,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "ssl.md",
+      "sha256": "6d185df520ad296dda838ffe9b727c571260f264f09c60636490029cfd729685",
+      "bytes": 101,
+      "query": "Which file configures NGINX certificate?",
+      "answer": "/etc/ssl/bear.pem",
+      "kind": "controlled",
+      "job_id": "88a6b2fb-6e2a-5023-930f-e8255013bf69",
+      "document_id": "1357f554bd-3",
+      "state": {
+        "id": "88a6b2fb-6e2a-5023-930f-e8255013bf69",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915286.2177687,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 2,
+        "warnings": []
+      },
+      "seconds": 1.2499535999959335,
+      "rank_at_5": 2,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 2
+    },
+    {
+      "file": "table.md",
+      "sha256": "95617cbfa3d9d9e60398680207d98387356efba541b3941c00a3b2c1ff622429",
+      "bytes": 84,
+      "query": "Profit for 2025?",
+      "answer": "150",
+      "kind": "controlled",
+      "job_id": "5056eb82-1666-5b45-abd5-26db8efe3624",
+      "document_id": "1357f554bd-4",
+      "state": {
+        "id": "5056eb82-1666-5b45-abd5-26db8efe3624",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915287.9057643,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 5,
+        "warnings": []
+      },
+      "seconds": 1.4582663999754004,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "manual.html",
+      "sha256": "cfcbbf66b8ee702f08530a67f00968e003c0d86c7664ac51af0aa9ef92da288f",
+      "bytes": 58,
+      "query": "Support email address?",
+      "answer": "helpdesk@example.test",
+      "kind": "controlled",
+      "job_id": "886c3794-9f4a-5990-94af-8a07768a4c01",
+      "document_id": "1357f554bd-5",
+      "state": {
+        "id": "886c3794-9f4a-5990-94af-8a07768a4c01",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915289.2241251,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 1,
+        "warnings": []
+      },
+      "seconds": 1.2465470000170171,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "table.htm",
+      "sha256": "2bf4c739133ad1d5c7d0e984031f132269ef547759de49107ccd281e0dd1450d",
+      "bytes": 103,
+      "query": "East office opening hours?",
+      "answer": "09:30",
+      "kind": "controlled",
+      "job_id": "b39f36c0-de47-55e2-8f64-df26ad7c56a2",
+      "document_id": "1357f554bd-6",
+      "state": {
+        "id": "b39f36c0-de47-55e2-8f64-df26ad7c56a2",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915290.7476375,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 4,
+        "warnings": []
+      },
+      "seconds": 1.4559461000026204,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "delivery.docx",
+      "sha256": "7b439c12f3b98eabaed9c0d32ee7d291b26c09b0f4c399010758484fec424f64",
+      "bytes": 37918,
+      "query": "Delivery time for Nord parcels?",
+      "answer": "7",
+      "kind": "controlled",
+      "job_id": "1ca247f8-2808-5974-b8ea-0a19c87ddd23",
+      "document_id": "1357f554bd-7",
+      "state": {
+        "id": "1ca247f8-2808-5974-b8ea-0a19c87ddd23",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915292.4487007,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 5,
+        "warnings": [
+          "table_header_inferred"
+        ]
+      },
+      "seconds": 1.4541017999872565,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "embedded.docx",
+      "sha256": "60c6d1f6138b9adf63a4556e7f71e965e0779019c02b74f9463673b89ab60994",
+      "bytes": 38405,
+      "query": "Delivery conditions?",
+      "answer": "7",
+      "kind": "controlled_unsupported_object",
+      "job_id": "ffd32a65-60e1-5674-95f4-528135486fcd",
+      "document_id": "1357f554bd-8",
+      "state": {
+        "id": "ffd32a65-60e1-5674-95f4-528135486fcd",
+        "status": "needs_review",
+        "phase": "needs_review",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915293.553305,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": false,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [
+            "docx_complex_markup_needs_review",
+            "docx_unsupported_embedded_object:word/media/image1.png"
+          ],
+          "source_fidelity": "unverified",
+          "status": "needs_review"
+        },
+        "chunks": 5,
+        "warnings": [
+          "docx_unsupported_embedded_object:word/media/image1.png",
+          "docx_complex_markup_needs_review",
+          "table_header_inferred"
+        ]
+      },
+      "seconds": 1.0466888999799266,
+      "rank_at_5": 0,
+      "has_sources": false,
+      "automatic_success": false,
+      "rank_during_incremental_upload": 0
+    },
+    {
+      "file": "text.pdf",
+      "sha256": "92f3d1f12b5ee9f860448eb27c2193cf3a7666bc34a5c50b25927de33a500609",
+      "bytes": 1385,
+      "query": "How long is annual leave?",
+      "answer": "28",
+      "kind": "controlled",
+      "job_id": "e31f4fa4-a4c8-5184-bddb-1737097b1648",
+      "document_id": "1357f554bd-9",
+      "state": {
+        "id": "e31f4fa4-a4c8-5184-bddb-1737097b1648",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915295.0786412,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 1,
+        "warnings": [
+          "pdf_layout_and_table_detection_unverified",
+          "pdf_page_route:{\"fallback_attempted\": false, \"fallback_seconds\": 1e-06, \"page\": 1, \"primary_reasons\": [], \"remaining_reasons\": [], \"selected_parser\": \"bear\", \"source_fidelity\": \"unverified\", \"status\": \"heuristic_checks_passed\"}"
+        ]
+      },
+      "seconds": 1.2775804999982938,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "scan.pdf",
+      "sha256": "b7b1c108c9ca9df344e22e2b1fab30389ecbfe7781bc06627cd4f2aed853c303",
+      "bytes": 17227,
+      "query": "Refund time in the scanned policy?",
+      "answer": "27",
+      "kind": "controlled_scan",
+      "job_id": "6d37be5c-a117-5f18-8e3d-8561b28f190e",
+      "document_id": "1357f554bd-10",
+      "state": {
+        "id": "6d37be5c-a117-5f18-8e3d-8561b28f190e",
+        "status": "needs_review",
+        "phase": "needs_review",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915320.3346338,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": false,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [
+            "ocr_requires_review"
+          ],
+          "source_fidelity": "unverified",
+          "status": "needs_review"
+        },
+        "chunks": 1,
+        "warnings": [
+          "pdf_layout_and_table_detection_unverified",
+          "pdf_sparse_text_visual:page:1",
+          "ocr_unverified:page:1; numeric_and_layout_review_required",
+          "pdf_page_route:{\"candidate_parser_versions\": [\"2.148.0\"], \"candidate_reasons\": [], \"fallback_attempted\": true, \"fallback_seconds\": 23.692384, \"fallback_status\": \"selected\", \"page\": 1, \"primary_reasons\": [\"pdf_sparse_text_visual\"], \"remaining_reasons\": [], \"selected_parser\": \"docling\", \"source_fidelity\": \"unverified\", \"status\": \"heuristic_checks_passed\"}"
+        ]
+      },
+      "seconds": 25.2015046000015,
+      "rank_at_5": 0,
+      "has_sources": false,
+      "automatic_success": false,
+      "rank_during_incremental_upload": 0
+    },
+    {
+      "file": "dummy.pdf",
+      "sha256": "3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4",
+      "bytes": 13264,
+      "query": "Dummy PDF file",
+      "answer": "Dummy",
+      "kind": "public_real_document",
+      "job_id": "a0aafd59-e79f-5a2d-a675-76a410718097",
+      "document_id": "1357f554bd-11",
+      "state": {
+        "id": "a0aafd59-e79f-5a2d-a675-76a410718097",
+        "status": "searchable",
+        "phase": "searchable",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915321.6457021,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": true,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [],
+          "source_fidelity": "unverified",
+          "status": "accepted"
+        },
+        "chunks": 1,
+        "warnings": [
+          "pdf_layout_and_table_detection_unverified",
+          "pdf_page_route:{\"fallback_attempted\": false, \"fallback_seconds\": 0.0, \"page\": 1, \"primary_reasons\": [], \"remaining_reasons\": [], \"selected_parser\": \"bear\", \"source_fidelity\": \"unverified\", \"status\": \"heuristic_checks_passed\"}"
+        ]
+      },
+      "seconds": 1.0547919999808073,
+      "rank_at_5": 1,
+      "has_sources": true,
+      "automatic_success": true,
+      "rank_during_incremental_upload": 1
+    },
+    {
+      "file": "typescript.md",
+      "sha256": "b43867a1a978a0a3d881b91e50e9807f1f56e3f1dd54d65cad43f471c84e0036",
+      "bytes": 2741,
+      "query": "What is TypeScript?",
+      "answer": "TypeScript",
+      "kind": "public_real_document",
+      "job_id": "b7ef08ba-ba6d-54c7-b274-b1030c05b9bb",
+      "document_id": "1357f554bd-12",
+      "state": {
+        "id": "b7ef08ba-ba6d-54c7-b274-b1030c05b9bb",
+        "status": "needs_review",
+        "phase": "needs_review",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": null,
+        "completed_at": 1793915322.74312,
+        "worker_status": "complete",
+        "acceptance": {
+          "accepted_for_indexing": false,
+          "limitations": [
+            "Покрытие извлечённых блоков не доказывает полноту оригинала",
+            "Автоматическая приёмка не является независимой проверкой фактов"
+          ],
+          "policy": "operational-v1",
+          "reasons": [
+            "unresolved_or_partial_content"
+          ],
+          "source_fidelity": "unverified",
+          "status": "needs_review"
+        },
+        "chunks": 9,
+        "warnings": [
+          "external_processor_missing:IMAGE:fef31413-99af-5906-af0a-92665b22ed48",
+          "external_processor_missing:IMAGE:973d5626-1e07-5943-ba2f-78987c2755e0",
+          "external_processor_missing:IMAGE:8aff1ceb-aa96-5b93-a683-189b720a4128",
+          "external_processor_missing:IMAGE:b7fb895f-8b10-567d-b5fb-d1ab73e19c8b"
+        ]
+      },
+      "seconds": 1.033744200016372,
+      "rank_at_5": 0,
+      "has_sources": false,
+      "automatic_success": false,
+      "rank_during_incremental_upload": 0
+    },
+    {
+      "file": "broken.pdf",
+      "sha256": "55e6967dae43099b5d6822df808b06e30454a2be93475a3d82ba612d8dd3bf29",
+      "bytes": 9,
+      "query": "bad",
+      "answer": "bad",
+      "kind": "invalid_control",
+      "job_id": "8254bc42-cb84-5300-9923-bbe3f2b0aef3",
+      "document_id": "1357f554bd-13",
+      "state": {
+        "id": "8254bc42-cb84-5300-9923-bbe3f2b0aef3",
+        "status": "failed",
+        "phase": "parsing",
+        "auto_index": 1,
+        "attempts": 1,
+        "error": "Некорректная сигнатура PDF",
+        "completed_at": 1793915323.7790835,
+        "worker_status": "failed"
+      },
+      "seconds": 0.8321562000201084,
+      "rank_at_5": 0,
+      "has_sources": false,
+      "automatic_success": false,
+      "rank_during_incremental_upload": 0
+    }
+  ],
+  "search_seconds": [
+    0.23520910000661388,
+    0.1361453999998048,
+    0.13767010002629831,
+    0.13846290000947192,
+    0.11725670000305399,
+    0.11891530000139028,
+    0.12532769999234006,
+    0.13107649999437854,
+    0.13196059997426346,
+    0.12869520002277568,
+    0.1843591000069864,
+    0.12012139998842031,
+    0.15526969998609275,
+    0.11390529997879639
+  ],
+  "cached_search_seconds": 0.008568299992475659,
+  "parallel_4_seconds": 0.037743300024885684,
+  "rss_mib_snapshot": {
+    "qdrant": 87.9609375,
+    "embedding": 3073.58203125,
+    "api": 368.72265625,
+    "worker": 368.375
+  },
+  "hardware": {
+    "platform": "Windows-11-10.0.26300-SP0",
+    "cpu": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "logical_cpus": 16,
+    "physical_cpus": 12,
+    "ram_gib": 15.695182800292969
+  },
+  "index_bytes": 621029269,
+  "scope": "Small explicit corpus, not an agreed representative company benchmark. Invalid/review cases kept in denominator.",
+  "restart_persistence_verified": true,
+  "retrieval_protocol": "fixed_final_active_index_after_all_submissions"
+}

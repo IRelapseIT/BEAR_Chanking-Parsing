@@ -1,0 +1,15 @@
+refund.txt searchable rank 1
+backup.txt searchable rank 1
+access.txt searchable rank 1
+ssl.md searchable rank 2
+table.md searchable rank 1
+manual.html searchable rank 1
+table.htm searchable rank 1
+delivery.docx searchable rank 1
+embedded.docx needs_review rank 0
+text.pdf searchable rank 1
+scan.pdf needs_review rank 0
+dummy.pdf searchable rank 1
+typescript.md needs_review rank 0
+broken.pdf failed rank 0
+REAL_API_BGE_QDRANT_WORKFLOW_VERIFIED

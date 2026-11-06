@@ -3,9 +3,9 @@ import json
 from pathlib import Path
 
 from bear_text_beta.chunking import ChunkingService
-from bear_text_beta.embeddings import HFTokenCounter, InfinityEmbeddingProvider
+from bear_text_beta.embeddings import HFTokenCounter, InfinityEmbeddingProvider, load_profile
 from bear_text_beta.errors import EmbeddingError
-from bear_text_beta.models import DocumentContext, EmbeddingProfile
+from bear_text_beta.models import DocumentContext
 from bear_text_beta.object_storage import LocalObjectStorage
 
 from .bridge import ParserProcess
@@ -35,7 +35,7 @@ def main():
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Output already exists; choose a new path")
-    profile = EmbeddingProfile()
+    profile = load_profile(args.tokenizer)
     counter = HFTokenCounter(args.tokenizer, profile)
     embeddings = (UnavailableEmbeddings() if args.offline else
                   InfinityEmbeddingProvider(args.infinity_url, profile, counter))

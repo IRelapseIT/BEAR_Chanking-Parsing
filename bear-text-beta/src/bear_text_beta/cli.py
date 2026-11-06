@@ -20,8 +20,8 @@ def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="BEAR: парсинг и адаптивный чанкинг")
-    parser.add_argument("--state-dir", default="state")
-    parser.add_argument("--model-dir", default="models/e5")
+    parser.add_argument("--state-dir", default="state-bge-m3")
+    parser.add_argument("--model-dir", default="models/bge-m3")
     parser.add_argument("--offline", action="store_true", help="Не выполнять семантический инференс")
     parser.add_argument("--test-counter", action="store_true", help="Тестовый счётчик; индексация запрещена")
     parser.add_argument("--allow-cp1251", action="store_true")
@@ -50,6 +50,7 @@ def main(argv=None):
     compare.add_argument("right", type=Path)
     prepare = sub.add_parser("prepare-model")
     prepare.add_argument("--weights", action="store_true")
+    prepare.add_argument("--model", choices=["e5-small", "bge-m3"], default="bge-m3")
     freeze = sub.add_parser("lock")
     freeze.add_argument("--output", type=Path, default=Path("requirements.lock"))
     images = sub.add_parser("prepare-images")
@@ -66,7 +67,7 @@ def main(argv=None):
             print_json(report)
             return 1 if args.require_model and not report["model"]["tokenizer_ready"] else 0
         if args.command == "prepare-model":
-            print_json(prepare_model(Path(args.model_dir), weights=args.weights))
+            print_json(prepare_model(Path(args.model_dir), weights=args.weights, model=args.model))
             return 0
         if args.command == "prepare-images":
             prepare_images(args.output)

@@ -50,12 +50,17 @@ class QdrantVectorStore:
         self._collection_ready = True
 
     def upsert(self, chunks, result):
+        sources = {block.id: block.source for block in result.parsed_document.blocks}
         self.ensure_collection()
         context = result.context
         for index in range(0, len(chunks), 64):
             points = []
             for embedded in chunks[index:index + 64]:
                 payload = asdict(embedded.chunk)
+                payload["sources"] = [{"block_id": span.block_id, "start_char": span.start_char,
+                                       "end_char": span.end_char, **asdict(sources[span.block_id])}
+                                      for span in embedded.chunk.source_spans]
+                payload["acceptance"] = result.metrics.get("acceptance", {})
                 payload.update(tenant_id=context.tenant_id, space_id=context.space_id,
                                document_id=context.document_id, document_version=context.document_version,
                                generation_id=result.generation_id, chunk_id=embedded.chunk.id,
@@ -105,7 +110,9 @@ class IndexingService:
         self.embedding_profile = embedding_profile
         self.external_validators = external_validators or {}
 
-    def index(self, result):
+    def index(self, result, processing_claim=None):
+        if result.metrics.get("acceptance", {}).get("accepted_for_indexing") is False:
+            raise ValidationError("Документ не прошёл установленную политику приёмки")
         if isinstance(self.counter, CharacterTokenCounter):
             raise ValidationError("Тестовый символьный токенизатор нельзя использовать для индексации")
         if result.metrics.get("embedding_profile_id") != self.embedding_profile.identifier():
@@ -121,7 +128,7 @@ class IndexingService:
         if not result.chunks:
             raise ValidationError("Нет пригодных чанков для индексации")
         self.manifest.save(result)
-        if not self.manifest.begin_index(result.generation_id):
+        if not self.manifest.begin_index(result.generation_id, processing_claim):
             return {"generation_id": result.generation_id, "status": "already_indexed",
                     "completeness": result.completeness}
         try:
@@ -129,12 +136,16 @@ class IndexingService:
                 batch = result.chunks[start:start + 16]
                 vectors = self.embeddings.embed_batch([chunk.embedding_text for chunk in batch], "document")
                 validate_vectors(vectors, len(batch), self.embedding_profile.vector_dimension)
+                if processing_claim:
+                    self.manifest.set_processing_phase(*processing_claim, "indexing")
                 embedded = [EmbeddedChunk(chunk, vector, self.embedding_profile.identifier())
                             for chunk, vector in zip(batch, vectors, strict=True)]
                 self.vectors.upsert(embedded, result)
+                if processing_claim:
+                    self.manifest.set_processing_phase(*processing_claim, "embedding")
             if not self.vectors.verify_generation(result.generation_id, [chunk.id for chunk in result.chunks]):
                 raise StorageError("Поколение Qdrant записано не полностью")
-            previous = self.manifest.activate(result.generation_id)
+            previous = self.manifest.activate(result.generation_id, processing_claim)
         except Exception as exc:
             self.manifest.fail(result.generation_id, exc)
             raise

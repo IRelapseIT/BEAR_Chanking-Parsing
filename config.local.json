@@ -1,0 +1,7 @@
+{
+  "ports": {"embedding": 7998, "qdrant": 6335, "qdrant_grpc": 6336, "api": 8002},
+  "qdrant_exe": "runtime/bin/qdrant.exe",
+  "collection": "bear_bge_m3_workflow_v1",
+  "docling_python": "",
+  "docling_artifacts": ""
+}

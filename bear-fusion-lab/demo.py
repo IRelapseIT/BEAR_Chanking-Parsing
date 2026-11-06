@@ -145,7 +145,7 @@ def main():
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--upstream", type=Path, default=ROOT.parent / "research/RAG_VERSION_1-20261102")
     parser.add_argument("--parser-python", type=Path, default=ROOT.parent / "research/rag-dedoc3-env/Scripts/python.exe")
-    parser.add_argument("--tokenizer", type=Path, default=ROOT.parent / "bear-text-beta/models/e5")
+    parser.add_argument("--tokenizer", type=Path, default=ROOT.parent / "models/bge-m3")
     args = parser.parse_args()
     if min(args.memory_mb, args.timeout) <= 0:
         parser.error("Budgets must be positive")
@@ -159,9 +159,8 @@ def main():
     def counter():
         with counter_lock:
             if not context_counters:
-                from bear_text_beta.embeddings import HFTokenCounter
-                from bear_text_beta.models import EmbeddingProfile
-                context_counters.append(HFTokenCounter(args.tokenizer, EmbeddingProfile()))
+                from bear_text_beta.embeddings import HFTokenCounter, load_profile
+                context_counters.append(HFTokenCounter(args.tokenizer, load_profile(args.tokenizer)))
         return context_counters[0]
 
     class Handler(BaseHTTPRequestHandler):

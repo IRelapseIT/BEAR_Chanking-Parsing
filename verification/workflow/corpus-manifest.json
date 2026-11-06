@@ -1,0 +1,114 @@
+[
+  {
+    "file": "refund.txt",
+    "sha256": "c197b7247ac24e40b5fcdaf9fcbd90efac707859779b047348f8af7e2e9e373a",
+    "bytes": 90,
+    "query": "За сколько дней Норд вернет деньги?",
+    "answer": "12",
+    "kind": "controlled"
+  },
+  {
+    "file": "backup.txt",
+    "sha256": "d1ff7fc5c5c3fcdf867851e29f8c5aa6d64f322a49690435255363b3fdb5b250",
+    "bytes": 74,
+    "query": "Срок хранения архивных резервных копий?",
+    "answer": "43",
+    "kind": "controlled"
+  },
+  {
+    "file": "access.txt",
+    "sha256": "d8cfe8deb7b573d79696f513fdaf2994fea4247b83604aa122578f824604ee09",
+    "bytes": 90,
+    "query": "Где оформить пропуск в лабораторию?",
+    "answer": "деканат",
+    "kind": "controlled"
+  },
+  {
+    "file": "ssl.md",
+    "sha256": "6d185df520ad296dda838ffe9b727c571260f264f09c60636490029cfd729685",
+    "bytes": 101,
+    "query": "Which file configures NGINX certificate?",
+    "answer": "/etc/ssl/bear.pem",
+    "kind": "controlled"
+  },
+  {
+    "file": "table.md",
+    "sha256": "95617cbfa3d9d9e60398680207d98387356efba541b3941c00a3b2c1ff622429",
+    "bytes": 84,
+    "query": "Profit for 2025?",
+    "answer": "150",
+    "kind": "controlled"
+  },
+  {
+    "file": "manual.html",
+    "sha256": "cfcbbf66b8ee702f08530a67f00968e003c0d86c7664ac51af0aa9ef92da288f",
+    "bytes": 58,
+    "query": "Support email address?",
+    "answer": "helpdesk@example.test",
+    "kind": "controlled"
+  },
+  {
+    "file": "table.htm",
+    "sha256": "2bf4c739133ad1d5c7d0e984031f132269ef547759de49107ccd281e0dd1450d",
+    "bytes": 103,
+    "query": "East office opening hours?",
+    "answer": "09:30",
+    "kind": "controlled"
+  },
+  {
+    "file": "delivery.docx",
+    "sha256": "7b439c12f3b98eabaed9c0d32ee7d291b26c09b0f4c399010758484fec424f64",
+    "bytes": 37918,
+    "query": "Delivery time for Nord parcels?",
+    "answer": "7",
+    "kind": "controlled"
+  },
+  {
+    "file": "embedded.docx",
+    "sha256": "60c6d1f6138b9adf63a4556e7f71e965e0779019c02b74f9463673b89ab60994",
+    "bytes": 38405,
+    "query": "Delivery conditions?",
+    "answer": "7",
+    "kind": "controlled_unsupported_object"
+  },
+  {
+    "file": "text.pdf",
+    "sha256": "92f3d1f12b5ee9f860448eb27c2193cf3a7666bc34a5c50b25927de33a500609",
+    "bytes": 1385,
+    "query": "How long is annual leave?",
+    "answer": "28",
+    "kind": "controlled"
+  },
+  {
+    "file": "scan.pdf",
+    "sha256": "b7b1c108c9ca9df344e22e2b1fab30389ecbfe7781bc06627cd4f2aed853c303",
+    "bytes": 17227,
+    "query": "Refund time in the scanned policy?",
+    "answer": "27",
+    "kind": "controlled_scan"
+  },
+  {
+    "file": "dummy.pdf",
+    "sha256": "3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4",
+    "bytes": 13264,
+    "query": "Dummy PDF file",
+    "answer": "Dummy",
+    "kind": "public_real_document"
+  },
+  {
+    "file": "typescript.md",
+    "sha256": "b43867a1a978a0a3d881b91e50e9807f1f56e3f1dd54d65cad43f471c84e0036",
+    "bytes": 2741,
+    "query": "What is TypeScript?",
+    "answer": "TypeScript",
+    "kind": "public_real_document"
+  },
+  {
+    "file": "broken.pdf",
+    "sha256": "55e6967dae43099b5d6822df808b06e30454a2be93475a3d82ba612d8dd3bf29",
+    "bytes": 9,
+    "query": "bad",
+    "answer": "bad",
+    "kind": "invalid_control"
+  }
+]

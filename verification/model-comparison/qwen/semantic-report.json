@@ -1,0 +1,591 @@
+{
+  "variants": [
+    {
+      "language": "ru",
+      "mode": "adaptive",
+      "chunks": 18,
+      "seconds": 1.8699153999914415,
+      "branches": {
+        "semantic": 18
+      },
+      "fallbacks": {},
+      "max_tokens": 72,
+      "inference": {
+        "requests": 2,
+        "input_texts": 15,
+        "input_tokens": 441
+      },
+      "source_coverage_validated": true,
+      "boundaries": [
+        [
+          [
+            0,
+            99
+          ]
+        ],
+        [
+          [
+            99,
+            234
+          ]
+        ],
+        [
+          [
+            234,
+            365
+          ]
+        ],
+        [
+          [
+            365,
+            594
+          ]
+        ],
+        [
+          [
+            594,
+            661
+          ]
+        ],
+        [
+          [
+            661,
+            792
+          ]
+        ],
+        [
+          [
+            792,
+            1021
+          ]
+        ],
+        [
+          [
+            1021,
+            1088
+          ]
+        ],
+        [
+          [
+            1088,
+            1219
+          ]
+        ],
+        [
+          [
+            1219,
+            1448
+          ]
+        ],
+        [
+          [
+            1448,
+            1515
+          ]
+        ],
+        [
+          [
+            1515,
+            1646
+          ]
+        ],
+        [
+          [
+            1646,
+            1875
+          ]
+        ],
+        [
+          [
+            1875,
+            1942
+          ]
+        ],
+        [
+          [
+            1942,
+            2073
+          ]
+        ],
+        [
+          [
+            2073,
+            2302
+          ]
+        ],
+        [
+          [
+            2302,
+            2369
+          ]
+        ],
+        [
+          [
+            2369,
+            2561
+          ]
+        ]
+      ]
+    },
+    {
+      "language": "ru",
+      "mode": "semantic",
+      "chunks": 18,
+      "seconds": 1.870787099993322,
+      "branches": {
+        "semantic": 18
+      },
+      "fallbacks": {},
+      "max_tokens": 72,
+      "inference": {
+        "requests": 2,
+        "input_texts": 15,
+        "input_tokens": 441
+      },
+      "source_coverage_validated": true,
+      "boundaries": [
+        [
+          [
+            0,
+            99
+          ]
+        ],
+        [
+          [
+            99,
+            234
+          ]
+        ],
+        [
+          [
+            234,
+            365
+          ]
+        ],
+        [
+          [
+            365,
+            594
+          ]
+        ],
+        [
+          [
+            594,
+            661
+          ]
+        ],
+        [
+          [
+            661,
+            792
+          ]
+        ],
+        [
+          [
+            792,
+            1021
+          ]
+        ],
+        [
+          [
+            1021,
+            1088
+          ]
+        ],
+        [
+          [
+            1088,
+            1219
+          ]
+        ],
+        [
+          [
+            1219,
+            1448
+          ]
+        ],
+        [
+          [
+            1448,
+            1515
+          ]
+        ],
+        [
+          [
+            1515,
+            1646
+          ]
+        ],
+        [
+          [
+            1646,
+            1875
+          ]
+        ],
+        [
+          [
+            1875,
+            1942
+          ]
+        ],
+        [
+          [
+            1942,
+            2073
+          ]
+        ],
+        [
+          [
+            2073,
+            2302
+          ]
+        ],
+        [
+          [
+            2302,
+            2369
+          ]
+        ],
+        [
+          [
+            2369,
+            2561
+          ]
+        ]
+      ]
+    },
+    {
+      "language": "ru",
+      "mode": "token",
+      "chunks": 3,
+      "seconds": 0.020664599956944585,
+      "branches": {
+        "recursive": 3
+      },
+      "fallbacks": {},
+      "max_tokens": 295,
+      "inference": {
+        "requests": 0,
+        "input_texts": 0,
+        "input_tokens": 0
+      },
+      "source_coverage_validated": true,
+      "boundaries": [
+        [
+          [
+            0,
+            953
+          ]
+        ],
+        [
+          [
+            953,
+            1875
+          ]
+        ],
+        [
+          [
+            1875,
+            2561
+          ]
+        ]
+      ]
+    },
+    {
+      "language": "en",
+      "mode": "adaptive",
+      "chunks": 18,
+      "seconds": 1.1204449000069872,
+      "branches": {
+        "semantic": 18
+      },
+      "fallbacks": {},
+      "max_tokens": 29,
+      "inference": {
+        "requests": 2,
+        "input_texts": 13,
+        "input_tokens": 203
+      },
+      "source_coverage_validated": true,
+      "boundaries": [
+        [
+          [
+            0,
+            164
+          ]
+        ],
+        [
+          [
+            164,
+            278
+          ]
+        ],
+        [
+          [
+            278,
+            376
+          ]
+        ],
+        [
+          [
+            376,
+            492
+          ]
+        ],
+        [
+          [
+            492,
+            606
+          ]
+        ],
+        [
+          [
+            606,
+            704
+          ]
+        ],
+        [
+          [
+            704,
+            820
+          ]
+        ],
+        [
+          [
+            820,
+            934
+          ]
+        ],
+        [
+          [
+            934,
+            1032
+          ]
+        ],
+        [
+          [
+            1032,
+            1148
+          ]
+        ],
+        [
+          [
+            1148,
+            1262
+          ]
+        ],
+        [
+          [
+            1262,
+            1360
+          ]
+        ],
+        [
+          [
+            1360,
+            1476
+          ]
+        ],
+        [
+          [
+            1476,
+            1590
+          ]
+        ],
+        [
+          [
+            1590,
+            1688
+          ]
+        ],
+        [
+          [
+            1688,
+            1804
+          ]
+        ],
+        [
+          [
+            1804,
+            1918
+          ]
+        ],
+        [
+          [
+            1918,
+            1967
+          ]
+        ]
+      ]
+    },
+    {
+      "language": "en",
+      "mode": "semantic",
+      "chunks": 18,
+      "seconds": 1.0619044000050053,
+      "branches": {
+        "semantic": 18
+      },
+      "fallbacks": {},
+      "max_tokens": 29,
+      "inference": {
+        "requests": 2,
+        "input_texts": 13,
+        "input_tokens": 203
+      },
+      "source_coverage_validated": true,
+      "boundaries": [
+        [
+          [
+            0,
+            164
+          ]
+        ],
+        [
+          [
+            164,
+            278
+          ]
+        ],
+        [
+          [
+            278,
+            376
+          ]
+        ],
+        [
+          [
+            376,
+            492
+          ]
+        ],
+        [
+          [
+            492,
+            606
+          ]
+        ],
+        [
+          [
+            606,
+            704
+          ]
+        ],
+        [
+          [
+            704,
+            820
+          ]
+        ],
+        [
+          [
+            820,
+            934
+          ]
+        ],
+        [
+          [
+            934,
+            1032
+          ]
+        ],
+        [
+          [
+            1032,
+            1148
+          ]
+        ],
+        [
+          [
+            1148,
+            1262
+          ]
+        ],
+        [
+          [
+            1262,
+            1360
+          ]
+        ],
+        [
+          [
+            1360,
+            1476
+          ]
+        ],
+        [
+          [
+            1476,
+            1590
+          ]
+        ],
+        [
+          [
+            1590,
+            1688
+          ]
+        ],
+        [
+          [
+            1688,
+            1804
+          ]
+        ],
+        [
+          [
+            1804,
+            1918
+          ]
+        ],
+        [
+          [
+            1918,
+            1967
+          ]
+        ]
+      ]
+    },
+    {
+      "language": "en",
+      "mode": "token",
+      "chunks": 2,
+      "seconds": 0.016848500003106892,
+      "branches": {
+        "recursive": 2
+      },
+      "fallbacks": {},
+      "max_tokens": 290,
+      "inference": {
+        "requests": 0,
+        "input_texts": 0,
+        "input_tokens": 0
+      },
+      "source_coverage_validated": true,
+      "boundaries": [
+        [
+          [
+            0,
+            1688
+          ]
+        ],
+        [
+          [
+            1688,
+            1967
+          ]
+        ]
+      ]
+    }
+  ],
+  "long_sentence": {
+    "source_coverage_validated": true,
+    "max_tokens": 320,
+    "branches": {
+      "semantic": 6
+    },
+    "fallbacks": {
+      "token_budget_repair": 6
+    }
+  },
+  "real_http_outage_safe_fallback": true
+}

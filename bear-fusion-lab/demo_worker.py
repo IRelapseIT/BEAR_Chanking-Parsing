@@ -10,8 +10,8 @@ os.environ.setdefault("HF_HUB_OFFLINE", "1")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 
 from bear_text_beta.chunking import ChunkingService
-from bear_text_beta.embeddings import HFTokenCounter, InfinityEmbeddingProvider
-from bear_text_beta.models import DocumentContext, EmbeddingProfile
+from bear_text_beta.embeddings import HFTokenCounter, InfinityEmbeddingProvider, load_profile
+from bear_text_beta.models import DocumentContext
 from bear_text_beta.object_storage import LocalObjectStorage
 
 from bear_fusion.bridge import ParserProcess
@@ -35,7 +35,7 @@ def main():
     tempfile.tempdir = str(job / "temp")
     config = json.loads((job / "request.json").read_text("utf-8"))
     source = job / config["filename"]
-    profile = EmbeddingProfile()
+    profile = load_profile(Path(config["tokenizer"]))
     counter = HFTokenCounter(Path(config["tokenizer"]), profile)
     url = os.environ.get("BEAR_INFINITY_URL")
     provider = InfinityEmbeddingProvider(url, profile, counter) if url else UnavailableEmbeddings()

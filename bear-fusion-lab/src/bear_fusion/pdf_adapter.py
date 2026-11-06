@@ -175,7 +175,7 @@ def ocr_region(renderer, index, box=None):
         page.close()
 
 
-def parse_pdf(path, context, limits):
+def _parse_pdf_primary(path, context, limits):
     import pdfplumber
     import pypdfium2 as pdfium
     builder = BlockBuilder(context)
@@ -185,9 +185,14 @@ def parse_pdf(path, context, limits):
             raise ValueError("PDF page limit exceeded")
         for index, page in enumerate(pdf.pages):
             source = SourceLocator("pdf", page=index + 1)
+            start = len(builder.blocks)
+            raw_text = ""
             try:
                 words = page.extract_words()
                 raw_text = page.extract_text() or ""
+                if len(re.sub(r"\W", "", raw_text)) < 15 and any(
+                        (im["x1"] - im["x0"]) * (im["bottom"] - im["top"]) > 15000 for im in page.images):
+                    builder.warnings.append(f"pdf_sparse_text_visual:page:{index + 1}")
                 regions, table_boxes = [], []
                 for table in page.find_tables():
                     rows = accepted_table(table, page)
@@ -238,6 +243,9 @@ def parse_pdf(path, context, limits):
                 if "(cid:" in raw_text:
                     builder.warnings.append(f"pdf_unknown_glyph:page:{index + 1}")
             except (ValueError, RuntimeError, subprocess.SubprocessError) as exc:
+                del builder.blocks[start:]
+                if raw_text.strip():
+                    builder.add(raw_text, "paragraph", source, metadata={"partial_page": True})
                 builder.add("", "image", source, kind="IMAGE", metadata={"unresolved": True, "page_error": str(exc)})
                 builder.warnings.append(f"pdf_page_failed:{index + 1}:{type(exc).__name__}")
             finally:
@@ -245,3 +253,8 @@ def parse_pdf(path, context, limits):
     result = builder.finish()
     result.parser_profile = "fusion-pdf-cpu-v3"
     return result
+
+
+def parse_pdf(path, context, limits, *, fallback=None, policy=None):
+    from .pdf_fallback import route_pages
+    return route_pages(_parse_pdf_primary(path, context, limits), path, limits, fallback, policy)

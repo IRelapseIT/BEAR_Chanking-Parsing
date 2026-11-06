@@ -1,0 +1,96 @@
+{
+  "checks": [
+    {
+      "file": "refund.txt",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "backup.txt",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "access.txt",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "ssl.md",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "table.md",
+      "known_table_values_checked": 6,
+      "expected_answer_in_extracted_blocks": false,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "manual.html",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "table.htm",
+      "known_table_values_checked": 4,
+      "expected_answer_in_extracted_blocks": false,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "delivery.docx",
+      "known_table_values_checked": 5,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "embedded.docx",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "text.pdf",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "scan.pdf",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "dummy.pdf",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "complete"
+    },
+    {
+      "file": "typescript.md",
+      "known_table_values_checked": 0,
+      "expected_answer_in_extracted_blocks": true,
+      "source_spans_present": true,
+      "coverage": "partial"
+    }
+  ],
+  "scope": "Known fragments/cells/code/page coordinates only. No global whole-source or arbitrary reading-order oracle."
+}

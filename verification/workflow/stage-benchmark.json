@@ -1,0 +1,8 @@
+{
+  "documents": 2,
+  "batch_size": 2,
+  "scope": "Two short documents, real model and own temporary collection",
+  "embedding_seconds": 0.20474879996618256,
+  "qdrant_upsert_and_verification_seconds": 0.008768300001975149,
+  "qdrant_query_seconds": 0.002022800035774708
+}

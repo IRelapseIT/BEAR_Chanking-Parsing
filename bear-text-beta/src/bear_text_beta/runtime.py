@@ -1,10 +1,12 @@
 import io
 import os
+from importlib.util import find_spec
 from pathlib import Path
 from typing import BinaryIO
 from uuid import uuid4
 
 from .chunking import ChunkingService
+from .embedding_pipeline import EmbeddingPipeline, MemoryVectorCache
 from .embeddings import (
     CharacterTokenCounter,
     HFTokenCounter,
@@ -33,22 +35,32 @@ class Services:
             self.counter = HFTokenCounter(Path(model_dir), self.profile)
         extra_parsers = {}
         external_processors = {}
-        from importlib.util import find_spec
         if find_spec("bear_fusion") is not None:
             from bear_fusion.markdown_adapter import StructuredMarkdownParser
             from bear_fusion.tables import TableProcessor
             extra_parsers[".md"] = StructuredMarkdownParser()
             external_processors["TABLE"] = TableProcessor(self.counter)
+            from .file_validation import FileLimits
+            from .unified_parsing import DOCXParser, PDFParser
+            extra_parsers.update({".docx": DOCXParser(), ".pdf": PDFParser(FileLimits())})
         self.object_storage = LocalObjectStorage(self.state_dir / "objects")
         self.parser = ParsingPipeline(self.state_dir / "assets", allow_cp1251,
                                       extra_parsers=extra_parsers,
                                       object_storage=self.object_storage)
         self.file_validator = FileValidator(self.parser.limits, set(self.parser.parsers))
         self.manifest = SQLiteManifest(self.state_dir / "manifest.sqlite3")
-        self.embeddings = UnavailableEmbeddingProvider() if offline or test_counter else InfinityEmbeddingProvider(
-            os.getenv("BEAR_INFINITY_URL", "http://127.0.0.1:7997/v1"), self.profile, self.counter,
-            server_model=os.getenv("BEAR_INFINITY_MODEL", "bear-e5-small"),
-            api_key=os.getenv("BEAR_INFINITY_API_KEY"))
+        if offline or test_counter:
+            self.embeddings = UnavailableEmbeddingProvider()
+        else:
+            server_model = ("bear-e5-small" if self.profile.model_id == "intfloat/multilingual-e5-small"
+                            else self.profile.model_id)
+            provider = InfinityEmbeddingProvider(
+                os.getenv("BEAR_INFINITY_URL", "http://127.0.0.1:7998/v1"), self.profile, self.counter,
+                server_model=os.getenv("BEAR_INFINITY_MODEL", server_model),
+                api_key=os.getenv("BEAR_INFINITY_API_KEY"))
+            self.embeddings = EmbeddingPipeline(provider, self.counter, self.profile,
+                                                max_tokens=provider.max_tokens,
+                                                cache=MemoryVectorCache())
         chunker_url = os.getenv("BEAR_CHUNKER_URL")
         self.external_processors = external_processors
         validators = {kind: processor for kind, processor in external_processors.items()
@@ -57,8 +69,12 @@ class Services:
                                             embedding_profile=self.profile, external_validators=validators)
                         if chunker_url else ChunkingService(
                             self.counter, self.embeddings, self.profile, external_processors))
-        self.vectors = QdrantVectorStore(os.getenv("BEAR_QDRANT_URL", "http://127.0.0.1:6333"),
-                                        os.getenv("BEAR_QDRANT_COLLECTION", "bear_text_e5_small_v1"),
+        self.vectors = QdrantVectorStore(os.getenv("BEAR_QDRANT_URL", "http://127.0.0.1:6335"),
+                                        os.getenv("BEAR_QDRANT_COLLECTION", (
+                                            "bear_text_e5_small_v1"
+                                            if self.profile.model_id == "intfloat/multilingual-e5-small"
+                                            else ("bear_bge_m3_" if self.profile.model_id == "BAAI/bge-m3" else "bear_text_")
+                                            + self.profile.identifier())),
                                         self.profile.vector_dimension,
                                         api_key=os.getenv("BEAR_QDRANT_API_KEY"))
         self.indexer = IndexingService(self.manifest, self.vectors, self.embeddings, self.counter,
@@ -96,11 +112,18 @@ class Services:
         with self.object_storage.get_stream(stored.object_key) as source:
             data = source.read(self.parser.max_file_bytes + 1)
         document = self.parser.parse(data, context)
+        if processing_claim:
+            self.manifest.set_processing_phase(*processing_claim, "chunking")
         for processor in self.external_processors.values():
             if hasattr(processor, "budget"):
                 processor.budget = min(profile.target_tokens, profile.max_tokens,
                                        self.profile.max_input_tokens)
         result = self.chunker.process(document, profile, generation_id)
+        from .acceptance import assess
+        if find_spec("bear_fusion") is not None:
+            from bear_fusion.parents import attach_parents
+            result.metrics["parents"] = attach_parents(result)
+        result.metrics["acceptance"] = assess(result)
         result.metrics["original_object_key"] = stored.object_key
         result.metrics["original_size_bytes"] = stored.size_bytes
         import tracemalloc
@@ -120,7 +143,7 @@ class Services:
 
 
 def default_services():
-    return Services(os.getenv("BEAR_STATE_DIR", "state"), os.getenv("BEAR_MODEL_DIR", "models/e5"),
+    return Services(os.getenv("BEAR_STATE_DIR", "state-bge-m3"), os.getenv("BEAR_MODEL_DIR", "models/bge-m3"),
                     test_counter=os.getenv("BEAR_TEST_COUNTER") == "1",
                     offline=os.getenv("BEAR_OFFLINE") == "1",
                     allow_cp1251=os.getenv("BEAR_ALLOW_CP1251") == "1")

@@ -1,0 +1,30 @@
+[
+  {
+    "file": "typescript.md",
+    "type": "public_real_document",
+    "sha256": "b43867a1a978a0a3d881b91e50e9807f1f56e3f1dd54d65cad43f471c84e0036",
+    "bytes": 2741,
+    "original_manifest": {
+      "url": "https://raw.githubusercontent.com/microsoft/TypeScript/main/README.md",
+      "resolved_url": "https://raw.githubusercontent.com/microsoft/TypeScript/main/README.md",
+      "content_type": "text/plain; charset=utf-8",
+      "sha256": "b43867a1a978a0a3d881b91e50e9807f1f56e3f1dd54d65cad43f471c84e0036",
+      "bytes": 2741,
+      "retrieved_at": "2026-11-02T23:09:27.810727+05:00"
+    }
+  },
+  {
+    "file": "dummy.pdf",
+    "type": "public_real_document",
+    "sha256": "3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4",
+    "bytes": 13264,
+    "original_manifest": {
+      "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      "resolved_url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+      "category": "tiny text PDF",
+      "bytes": 13264,
+      "sha256": "3df79d34abbca99308e79cb94461c1893582604d68329a41fd4bec1885e6adb4",
+      "retrieved_at": "2026-11-03T00:16:44.5615+05:00"
+    }
+  }
+]

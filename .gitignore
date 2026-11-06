@@ -1,4 +1,15 @@
 .venv/
+.infinity-venv/
+.infinity_cache/
+.unlazy/
+snapshots/
+.qdrant-initialized
+*.npz
+*.sqlite
+*.sqlite3
+*.db
+runtime/
+state-bge-m3/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -10,5 +21,7 @@ research/
 artifacts/
 demo-state/
 state/
+state-bge-m3/
+qdrant-storage-bge-m3/
 test-tmp*/
 *.egg-info/

@@ -1,0 +1,35 @@
+{
+  "embedding_outage_preserves_old_and_api_retry_activates_new": true,
+  "qdrant_outage_preserves_old_and_api_retry_activates_new": true,
+  "deletion_excludes_from_search": true,
+  "oversized_http_upload_rejected": true,
+  "infinity_vs_previously_verified_local_bge_cosine": [
+    0.9999999999994091,
+    0.9999207919384159
+  ],
+  "identical_untrimmed_inputs_matching_reference": [
+    0
+  ],
+  "sentence_transformers_edge_whitespace_normalization_verified": true,
+  "infinity_models_response": {
+    "data": [
+      {
+        "id": "BAAI/bge-m3",
+        "stats": {
+          "queue_fraction": 0.0,
+          "queue_absolute": 0,
+          "results_pending": 0,
+          "batch_size": 4
+        },
+        "object": "model",
+        "owned_by": "infinity",
+        "created": 1793914749,
+        "backend": "torch",
+        "capabilities": [
+          "embed"
+        ]
+      }
+    ],
+    "object": "list"
+  }
+}

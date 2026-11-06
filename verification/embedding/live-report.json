@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "profile": {
+    "model_id": "Qwen/Qwen3-Embedding-0.6B",
+    "model_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "tokenizer_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "vector_dimension": 1024,
+    "max_input_tokens": 512,
+    "query_prefix": "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+    "document_prefix": "",
+    "similarity_prefix": ""
+  },
+  "checks": {
+    "retrieval_top1": "refund",
+    "tenant_space_isolation": true,
+    "query_cache_and_unit_vectors": true,
+    "oversize_rejected_before_http": true,
+    "failed_reindex_preserves_old_and_retry_activates_new": true,
+    "documents": 3,
+    "chunks": 3,
+    "http_inference_requests": 6
+  },
+  "endpoint": "temporary Infinity-compatible HTTP adapter with real CPU Qwen3 weights"
+}

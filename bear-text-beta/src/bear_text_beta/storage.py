@@ -55,7 +55,9 @@ class SQLiteManifest:
             columns = {row["name"] for row in db.execute("PRAGMA table_info(processing_jobs)")}
             legacy_jobs = "claim_token" not in columns
             for name, sql_type in (("claim_token", "TEXT"), ("owner_id", "TEXT"),
-                                   ("lease_until", "REAL"), ("completed_at", "REAL")):
+                                   ("lease_until", "REAL"), ("completed_at", "REAL"),
+                                   ("auto_index", "INTEGER NOT NULL DEFAULT 0"),
+                                   ("phase", "TEXT NOT NULL DEFAULT 'queued'")):
                 if name not in columns:
                     db.execute(f"ALTER TABLE processing_jobs ADD COLUMN {name} {sql_type}")
             if legacy_jobs:
@@ -127,8 +129,9 @@ class SQLiteManifest:
             raise StorageError("Checkpoint не найден")
         return load_result(json.loads(row["result_json"]))
 
-    def begin_index(self, generation_id):
+    def begin_index(self, generation_id, processing_claim=None):
         with self.connection() as db:
+            self._require_index_claim(db, generation_id, processing_claim)
             row = db.execute("SELECT * FROM generations WHERE id=?", (generation_id,)).fetchone()
             if row is None:
                 raise StorageError("Checkpoint не найден")
@@ -154,8 +157,9 @@ class SQLiteManifest:
                        (generation_id,))
             return True
 
-    def activate(self, generation_id):
+    def activate(self, generation_id, processing_claim=None):
         with self.connection() as db:
+            self._require_index_claim(db, generation_id, processing_claim)
             row = db.execute("SELECT * FROM generations WHERE id=?", (generation_id,)).fetchone()
             if row is None or row["status"] != "indexing":
                 raise StorageError("Поколение не находится в состоянии indexing")
@@ -248,7 +252,7 @@ class SQLiteManifest:
                     "context": json.loads(row["context_json"]),
                     "profile": json.loads(row["profile_json"]), "claim_token": token,
                     "owner_id": owner_id, "lease_until": now + lease_seconds,
-                    "attempt": row["attempts"] + 1}
+                    "attempt": row["attempts"] + 1, "auto_index": bool(row["auto_index"])}
 
     @staticmethod
     def _require_processing_claim(db, job_id, claim_token):
@@ -305,6 +309,66 @@ class SQLiteManifest:
 
     def processing_status(self, job_id):
         with self.connection() as db:
-            row = db.execute("SELECT id,status,attempts,error,completed_at FROM processing_jobs WHERE id=?",
+            row = db.execute("SELECT id,status,phase,auto_index,attempts,error,completed_at FROM processing_jobs WHERE id=?",
                              (job_id,)).fetchone()
-        return dict(row) if row else None
+            state = dict(row) if row else None
+            if state and state["auto_index"]:
+                context = json.loads(db.execute("SELECT context_json FROM processing_jobs WHERE id=?", (job_id,)).fetchone()[0])
+                document = db.execute("SELECT deleted FROM documents WHERE tenant=? AND space=? AND document=?",
+                                      (context["tenant_id"], context["space_id"], context["document_id"])).fetchone()
+                if document and document[0]:
+                    state["phase"] = "deleted"
+        return state
+
+    def submit_ingestion(self, job_id, stored, context, profile, queue_limit=128):
+        from .errors import ServiceUnavailableError
+        with self.connection() as db:
+            old = db.execute("SELECT id,object_json FROM processing_jobs WHERE id=?", (job_id,)).fetchone()
+            if old:
+                return False
+            count = db.execute("SELECT COUNT(*) FROM processing_jobs WHERE status IN ('pending','running')").fetchone()[0]
+            if count >= queue_limit:
+                raise ServiceUnavailableError("Очередь заполнена")
+            key = (context.tenant_id, context.space_id, context.document_id)
+            db.execute("INSERT OR IGNORE INTO documents(tenant,space,document) VALUES (?,?,?)", key)
+            state = db.execute("SELECT * FROM documents WHERE tenant=? AND space=? AND document=?", key).fetchone()
+            if state["deleted"] or context.document_version < state["desired_version"]:
+                raise StorageError("Документ удалён или версия устарела")
+            version_key = key + (context.document_version,)
+            version = db.execute("SELECT checksum FROM versions WHERE tenant=? AND space=? AND document=? AND version=?",
+                                 version_key).fetchone()
+            if version and version["checksum"] != stored.checksum:
+                raise StorageError("Версия документа уже имеет другое содержимое")
+            db.execute("INSERT OR IGNORE INTO versions VALUES (?,?,?,?,?)", version_key + (stored.checksum,))
+            db.execute("INSERT INTO processing_jobs(id,object_json,context_json,profile_json,status,auto_index) "
+                       "VALUES (?,?,?,?, 'pending',1)", (job_id, json.dumps(asdict(stored)),
+                                                         json.dumps(asdict(context)), json.dumps(asdict(profile))))
+            db.execute("UPDATE documents SET desired_version=?,desired_generation=? WHERE tenant=? AND space=? AND document=?",
+                       (context.document_version, job_id) + key)
+            return True
+
+    @classmethod
+    def _require_index_claim(cls, db, generation_id, claim):
+        row = db.execute("SELECT auto_index FROM processing_jobs WHERE id=?", (generation_id,)).fetchone()
+        if row and row["auto_index"]:
+            if not claim or claim[0] != generation_id:
+                raise StorageError("Для автоматического задания требуется актуальная lease")
+            cls._require_processing_claim(db, *claim)
+            wanted = db.execute("SELECT d.desired_generation FROM generations g JOIN documents d "
+                                "ON g.tenant=d.tenant AND g.space=d.space AND g.document=d.document WHERE g.id=?",
+                                (generation_id,)).fetchone()
+            if wanted and wanted[0] != generation_id:
+                raise StorageError("Задание заменено новой загрузкой")
+
+    def set_processing_phase(self, job_id, token, phase):
+        with self.connection() as db:
+            self._require_processing_claim(db, job_id, token)
+            db.execute("UPDATE processing_jobs SET phase=? WHERE id=?", (phase, job_id))
+
+    def retry_ingestion(self, job_id):
+        with self.connection() as db:
+            row = db.execute("SELECT status FROM processing_jobs WHERE id=? AND auto_index=1", (job_id,)).fetchone()
+            if row is None or row[0] == "running":
+                raise StorageError("Задание не найдено или ещё выполняется")
+            db.execute("UPDATE processing_jobs SET status='pending',phase='queued',attempts=0,error=NULL WHERE id=?", (job_id,))
+            db.execute("UPDATE generations SET attempts=0 WHERE id=? AND status!='ready'", (job_id,))

@@ -1,0 +1,510 @@
+{
+  "fixture": "generated two-page PDF, 4x3 table on page 2",
+  "ruled_control_with_injected_primary_rejection": true,
+  "expected_table": [
+    [
+      "Year",
+      "Revenue",
+      "Cost"
+    ],
+    [
+      "2024",
+      "150",
+      "80"
+    ],
+    [
+      "2025",
+      "180",
+      "90"
+    ],
+    [
+      "2026",
+      "200",
+      "95"
+    ]
+  ],
+  "expected_values_found_in_table": 12,
+  "expected_values": 12,
+  "primary_seconds": 0.1801343999686651,
+  "routed_seconds": 15.321030499995686,
+  "added_seconds": 15.140896100027021,
+  "validated_chunks": 7,
+  "chunking_completeness": "complete",
+  "routes": [
+    {
+      "fallback_attempted": false,
+      "fallback_seconds": 0.0,
+      "page": 1,
+      "primary_reasons": [],
+      "remaining_reasons": [],
+      "selected_parser": "bear",
+      "source_fidelity": "unverified",
+      "status": "heuristic_checks_passed"
+    },
+    {
+      "candidate_parser_versions": [
+        "2.148.0"
+      ],
+      "candidate_reasons": [],
+      "fallback_attempted": true,
+      "fallback_seconds": 15.31517,
+      "fallback_status": "selected",
+      "page": 2,
+      "primary_reasons": [
+        "caption_without_table",
+        "pdf_table_candidate_rejected",
+        "unresolved_content"
+      ],
+      "remaining_reasons": [],
+      "selected_parser": "docling",
+      "source_fidelity": "unverified",
+      "status": "heuristic_checks_passed"
+    }
+  ],
+  "result": {
+    "context": {
+      "tenant_id": "pdf-smoke",
+      "space_id": "local",
+      "document_id": "borderless",
+      "document_version": 1,
+      "filename": "borderless.pdf",
+      "mime_type": "",
+      "checksum": ""
+    },
+    "blocks": [
+      {
+        "id": "34c290ef-48da-5eb0-886a-40500f43148d",
+        "order": 0,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "Ordinary first page remains unchanged.",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 1,
+          "bbox": [
+            40.0,
+            92.37380000000007,
+            250.75599999999997,
+            104.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            40.0,
+            92.37380000000007,
+            250.75599999999997,
+            104.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "single_column_unverified",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 1,
+            "primary_reasons": [],
+            "selected_parser": "bear",
+            "fallback_attempted": false,
+            "source_fidelity": "unverified",
+            "remaining_reasons": [],
+            "status": "heuristic_checks_passed",
+            "fallback_seconds": 0.0
+          }
+        }
+      },
+      {
+        "id": "8e69be12-b292-5df4-8f67-1edb4ed1a66a",
+        "order": 1,
+        "type": "TEXT",
+        "role": "heading",
+        "text": "Table 1 Revenue report",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            40.0,
+            93.27380000000005,
+            166.06000000000003,
+            104.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "parser": "docling",
+          "parser_version": "2.148.0",
+          "docling_ref": "#/texts/0",
+          "docling_confidence": {
+            "parse_score": 1.0,
+            "layout_score": 0.838519811630249
+          },
+          "coordinate_system": "pdf_points_top_left",
+          "bbox": [
+            40.0,
+            93.27380000000005,
+            166.06000000000003,
+            104.37380000000007
+          ],
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "pdf_table_candidate_rejected",
+              "unresolved_content"
+            ],
+            "selected_parser": "docling",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "selected",
+            "remaining_reasons": [],
+            "status": "heuristic_checks_passed",
+            "fallback_seconds": 15.31517
+          }
+        }
+      },
+      {
+        "id": "2b99f759-5ab9-5884-ad7e-524c418a3500",
+        "order": 2,
+        "type": "TABLE",
+        "role": "table",
+        "text": "Year | Revenue | Cost\n2024 | 150 | 80\n2025 | 180 | 90\n2026 | 200 | 95",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            58.676044190167424,
+            140.70382669580965,
+            540.732416330591,
+            267.32987575495133
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "parser": "docling",
+          "parser_version": "2.148.0",
+          "docling_ref": "#/tables/0",
+          "docling_confidence": {
+            "parse_score": 1.0,
+            "layout_score": 0.838519811630249
+          },
+          "coordinate_system": "pdf_points_top_left",
+          "bbox": [
+            58.676044190167424,
+            140.70382669580965,
+            540.732416330591,
+            267.32987575495133
+          ],
+          "table_cells": [
+            {
+              "id": "d0",
+              "row": 0,
+              "column": 0,
+              "text": "Year",
+              "row_span": 1,
+              "column_span": 1,
+              "header": true,
+              "scope": "col"
+            },
+            {
+              "id": "d1",
+              "row": 0,
+              "column": 1,
+              "text": "Revenue",
+              "row_span": 1,
+              "column_span": 1,
+              "header": true,
+              "scope": "col"
+            },
+            {
+              "id": "d2",
+              "row": 0,
+              "column": 2,
+              "text": "Cost",
+              "row_span": 1,
+              "column_span": 1,
+              "header": true,
+              "scope": "col"
+            },
+            {
+              "id": "d3",
+              "row": 1,
+              "column": 0,
+              "text": "2024",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d4",
+              "row": 1,
+              "column": 1,
+              "text": "150",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d5",
+              "row": 1,
+              "column": 2,
+              "text": "80",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d6",
+              "row": 2,
+              "column": 0,
+              "text": "2025",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d7",
+              "row": 2,
+              "column": 1,
+              "text": "180",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d8",
+              "row": 2,
+              "column": 2,
+              "text": "90",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d9",
+              "row": 3,
+              "column": 0,
+              "text": "2026",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d10",
+              "row": 3,
+              "column": 1,
+              "text": "200",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            },
+            {
+              "id": "d11",
+              "row": 3,
+              "column": 2,
+              "text": "95",
+              "row_span": 1,
+              "column_span": 1,
+              "header": false,
+              "scope": ""
+            }
+          ],
+          "header_rows": 1,
+          "cell_bboxes": {
+            "d0": [
+              70.0,
+              153.27380000000005,
+              95.344,
+              164.37380000000007
+            ],
+            "d1": [
+              240.0,
+              153.27380000000005,
+              288.0240000000001,
+              164.37380000000007
+            ],
+            "d2": [
+              410.0,
+              153.27380000000005,
+              434.672,
+              164.37380000000007
+            ],
+            "d3": [
+              70.0,
+              183.27380000000005,
+              96.68799999999999,
+              194.37380000000007
+            ],
+            "d4": [
+              240.0,
+              183.27380000000005,
+              260.016,
+              194.37380000000007
+            ],
+            "d5": [
+              410.0,
+              183.27380000000005,
+              423.34400000000005,
+              194.37380000000007
+            ],
+            "d6": [
+              70.0,
+              213.27380000000005,
+              96.68799999999999,
+              224.37380000000007
+            ],
+            "d7": [
+              240.0,
+              213.27380000000005,
+              260.016,
+              224.37380000000007
+            ],
+            "d8": [
+              410.0,
+              213.27380000000005,
+              423.34400000000005,
+              224.37380000000007
+            ],
+            "d9": [
+              70.0,
+              243.27380000000005,
+              96.68799999999999,
+              254.37380000000007
+            ],
+            "d10": [
+              240.0,
+              243.27380000000005,
+              260.016,
+              254.37380000000007
+            ],
+            "d11": [
+              410.0,
+              243.27380000000005,
+              423.34400000000005,
+              254.37380000000007
+            ]
+          },
+          "docling_cell_roles": {
+            "d0": {
+              "column_header": true,
+              "row_header": false,
+              "row_section": false
+            },
+            "d1": {
+              "column_header": true,
+              "row_header": false,
+              "row_section": false
+            },
+            "d2": {
+              "column_header": true,
+              "row_header": false,
+              "row_section": false
+            },
+            "d3": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d4": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d5": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d6": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d7": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d8": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d9": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d10": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            },
+            "d11": {
+              "column_header": false,
+              "row_header": false,
+              "row_section": false
+            }
+          },
+          "header_inference": false,
+          "table_contract": "cells-v1",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "pdf_table_candidate_rejected",
+              "unresolved_content"
+            ],
+            "selected_parser": "docling",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "selected",
+            "remaining_reasons": [],
+            "status": "heuristic_checks_passed",
+            "fallback_seconds": 15.31517
+          }
+        }
+      }
+    ],
+    "schema_version": 1,
+    "parser_profile": "fusion-pdf-cpu-v3:page-fallback-v1",
+    "attachments": [],
+    "warnings": [
+      "pdf_layout_and_table_detection_unverified",
+      "pdf_table_candidate_rejected:page:2",
+      "pdf_reading_order_inferred:page:2",
+      "pdf_page_route:{\"fallback_attempted\": false, \"fallback_seconds\": 0.0, \"page\": 1, \"primary_reasons\": [], \"remaining_reasons\": [], \"selected_parser\": \"bear\", \"source_fidelity\": \"unverified\", \"status\": \"heuristic_checks_passed\"}",
+      "pdf_page_route:{\"candidate_parser_versions\": [\"2.148.0\"], \"candidate_reasons\": [], \"fallback_attempted\": true, \"fallback_seconds\": 15.31517, \"fallback_status\": \"selected\", \"page\": 2, \"primary_reasons\": [\"caption_without_table\", \"pdf_table_candidate_rejected\", \"unresolved_content\"], \"remaining_reasons\": [], \"selected_parser\": \"docling\", \"source_fidelity\": \"unverified\", \"status\": \"heuristic_checks_passed\"}"
+    ]
+  },
+  "scope": "One synthetic fixture; not a representative document-quality benchmark"
+}

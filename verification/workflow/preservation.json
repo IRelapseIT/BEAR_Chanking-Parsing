@@ -1,0 +1,15 @@
+{
+  "primary_changed_files": [],
+  "unexpected_changes_to_inherited_model_work": [],
+  "primary_files_checked": 43,
+  "inherited_files_checked": 44,
+  "intentional_existing_source_changes": [
+    "api.py",
+    "indexing.py",
+    "process_worker.py",
+    "runtime.py",
+    "storage.py"
+  ],
+  "weights_verification_reused": "verification/model-comparison/weights-verified.json",
+  "comparison_reused": "docs/MODEL_COMPARISON_2026-11-06.md"
+}

@@ -1,0 +1,45 @@
+{
+  "parallelism": 4,
+  "cold_search_seconds": [
+    0.7001880999887362,
+    0.43341729999519885,
+    0.3080727999913506,
+    0.567487699969206
+  ],
+  "cached_search_seconds": [
+    0.0571322999894619,
+    0.0722801000229083,
+    0.01734349998878315,
+    0.04342169995652512
+  ],
+  "long_document_bytes": 33000,
+  "job_status": {
+    "id": "5ba23669-bd83-583a-b427-cdd3137577e3",
+    "status": "searchable",
+    "phase": "searchable",
+    "auto_index": 1,
+    "attempts": 1,
+    "error": null,
+    "completed_at": 1793914813.6457043,
+    "worker_status": "complete",
+    "acceptance": {
+      "accepted_for_indexing": true,
+      "limitations": [
+        "Покрытие извлечённых блоков не доказывает полноту оригинала",
+        "Автоматическая приёмка не является независимой проверкой фактов"
+      ],
+      "policy": "operational-v1",
+      "reasons": [],
+      "source_fidelity": "unverified",
+      "status": "accepted"
+    },
+    "chunks": 28,
+    "warnings": [
+      "semantic_budget_exceeded"
+    ]
+  },
+  "phase_at_probe": "chunking",
+  "live_during_processing_seconds": 0.001494100026320666,
+  "uncached_search_during_processing_seconds": 0.2129438000265509,
+  "scope": "One bounded CPU run. Query inference is serialized per API EmbeddingPipeline instance."
+}

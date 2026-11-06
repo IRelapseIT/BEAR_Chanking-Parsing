@@ -1,0 +1,937 @@
+{
+  "fixture": "generated two-page PDF, 4x3 table on page 2",
+  "ruled_control_with_injected_primary_rejection": false,
+  "expected_table": [
+    [
+      "Year",
+      "Revenue",
+      "Cost"
+    ],
+    [
+      "2024",
+      "150",
+      "80"
+    ],
+    [
+      "2025",
+      "180",
+      "90"
+    ],
+    [
+      "2026",
+      "200",
+      "95"
+    ]
+  ],
+  "expected_values_found_in_table": 0,
+  "expected_values": 12,
+  "primary_seconds": 0.17331149999517947,
+  "routed_seconds": 14.004432700050529,
+  "added_seconds": 13.83112120005535,
+  "validated_chunks": 2,
+  "chunking_completeness": "partial",
+  "routes": [
+    {
+      "fallback_attempted": false,
+      "fallback_seconds": 0.0,
+      "page": 1,
+      "primary_reasons": [],
+      "remaining_reasons": [],
+      "selected_parser": "bear",
+      "source_fidelity": "unverified",
+      "status": "heuristic_checks_passed"
+    },
+    {
+      "candidate_parser_versions": [
+        "2.148.0"
+      ],
+      "candidate_reasons": [
+        "caption_without_table"
+      ],
+      "fallback_attempted": true,
+      "fallback_seconds": 13.999054,
+      "fallback_status": "rejected_or_ambiguous",
+      "page": 2,
+      "primary_reasons": [
+        "caption_without_table",
+        "unresolved_content"
+      ],
+      "remaining_reasons": [
+        "caption_without_table",
+        "unresolved_content"
+      ],
+      "selected_parser": "bear",
+      "source_fidelity": "unverified",
+      "status": "needs_review"
+    }
+  ],
+  "result": {
+    "context": {
+      "tenant_id": "pdf-smoke",
+      "space_id": "local",
+      "document_id": "borderless",
+      "document_version": 1,
+      "filename": "borderless.pdf",
+      "mime_type": "",
+      "checksum": ""
+    },
+    "blocks": [
+      {
+        "id": "34c290ef-48da-5eb0-886a-40500f43148d",
+        "order": 0,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "Ordinary first page remains unchanged.",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 1,
+          "bbox": [
+            40.0,
+            92.37380000000007,
+            250.75599999999997,
+            104.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            40.0,
+            92.37380000000007,
+            250.75599999999997,
+            104.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "single_column_unverified",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 1,
+            "primary_reasons": [],
+            "selected_parser": "bear",
+            "fallback_attempted": false,
+            "source_fidelity": "unverified",
+            "remaining_reasons": [],
+            "status": "heuristic_checks_passed",
+            "fallback_seconds": 0.0
+          }
+        }
+      },
+      {
+        "id": "c3f83613-3f90-56e5-ada4-6a753e7e9def",
+        "order": 1,
+        "type": "TABLE",
+        "role": "table",
+        "text": "",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": null
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "unresolved": true,
+          "reason": "caption_without_reconstructed_table",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "541cba5c-94bc-515b-8f45-4f2bc141391e",
+        "order": 2,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "Table 1 Revenue report",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            40.0,
+            92.37380000000007,
+            166.06,
+            104.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            40.0,
+            92.37380000000007,
+            166.06,
+            104.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "1bc7b9ce-832d-53e4-aea2-2ab3e3351738",
+        "order": 3,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "Year",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            70.0,
+            152.37380000000007,
+            95.344,
+            164.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            70.0,
+            152.37380000000007,
+            95.344,
+            164.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "f25e3782-3b24-51fd-8746-f97363a3e24d",
+        "order": 4,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "2024",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            70.0,
+            182.37380000000007,
+            96.688,
+            194.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            70.0,
+            182.37380000000007,
+            96.688,
+            194.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "633b3b52-3794-5c7f-9fd7-21dda07ab78f",
+        "order": 5,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "2025",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            70.0,
+            212.37380000000007,
+            96.688,
+            224.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            70.0,
+            212.37380000000007,
+            96.688,
+            224.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "3b0b4cd3-f5aa-5be0-ae03-0f8691cae63b",
+        "order": 6,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "2026",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            70.0,
+            242.37380000000007,
+            96.688,
+            254.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            70.0,
+            242.37380000000007,
+            96.688,
+            254.37380000000007
+          ],
+          "layout_column": 0,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "da4862f6-feab-5756-a488-35dc42fe772a",
+        "order": 7,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "Revenue",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            240.0,
+            152.37380000000007,
+            288.024,
+            164.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            240.0,
+            152.37380000000007,
+            288.024,
+            164.37380000000007
+          ],
+          "layout_column": 1,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "43ea7e02-67f2-5ead-ae0e-03e8928f8444",
+        "order": 8,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "150",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            240.0,
+            182.37380000000007,
+            260.016,
+            194.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            240.0,
+            182.37380000000007,
+            260.016,
+            194.37380000000007
+          ],
+          "layout_column": 1,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "9d679d59-0f2c-5960-bc1c-eb49cb6975d9",
+        "order": 9,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "180",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            240.0,
+            212.37380000000007,
+            260.016,
+            224.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            240.0,
+            212.37380000000007,
+            260.016,
+            224.37380000000007
+          ],
+          "layout_column": 1,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "ff46c37b-2c33-5d3c-b67c-d96d01281be6",
+        "order": 10,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "200",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            240.0,
+            242.37380000000007,
+            260.016,
+            254.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            240.0,
+            242.37380000000007,
+            260.016,
+            254.37380000000007
+          ],
+          "layout_column": 1,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "c86e3113-1d5d-580e-b246-27f8c93d843f",
+        "order": 11,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "Cost",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            410.0,
+            152.37380000000007,
+            434.672,
+            164.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            410.0,
+            152.37380000000007,
+            434.672,
+            164.37380000000007
+          ],
+          "layout_column": 2,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "b8b24190-33ef-5fc3-b0f0-b14c2cf7b4aa",
+        "order": 12,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "80",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            410.0,
+            182.37380000000007,
+            423.34400000000005,
+            194.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            410.0,
+            182.37380000000007,
+            423.34400000000005,
+            194.37380000000007
+          ],
+          "layout_column": 2,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "52b72206-c6ed-5cbd-a4c8-03d1fa2a40db",
+        "order": 13,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "90",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            410.0,
+            212.37380000000007,
+            423.34400000000005,
+            224.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            410.0,
+            212.37380000000007,
+            423.34400000000005,
+            224.37380000000007
+          ],
+          "layout_column": 2,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      },
+      {
+        "id": "8b43861b-62c1-5338-9ea4-4200bdc05e7a",
+        "order": 14,
+        "type": "TEXT",
+        "role": "paragraph",
+        "text": "95",
+        "section_path": [],
+        "source": {
+          "format": "pdf",
+          "line_start": null,
+          "line_end": null,
+          "element_path": null,
+          "paragraph_index": null,
+          "page": 2,
+          "bbox": [
+            410.0,
+            242.37380000000007,
+            423.34400000000005,
+            254.37380000000007
+          ]
+        },
+        "attachment_ids": [],
+        "metadata": {
+          "bbox": [
+            410.0,
+            242.37380000000007,
+            423.34400000000005,
+            254.37380000000007
+          ],
+          "layout_column": 2,
+          "layout_full_width": false,
+          "reading_order": "column_gutters_inferred",
+          "coordinate_system": "pdf_points_top_left",
+          "pdf_route": {
+            "page": 2,
+            "primary_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "selected_parser": "bear",
+            "fallback_attempted": true,
+            "source_fidelity": "unverified",
+            "candidate_reasons": [
+              "caption_without_table"
+            ],
+            "candidate_parser_versions": [
+              "2.148.0"
+            ],
+            "fallback_status": "rejected_or_ambiguous",
+            "remaining_reasons": [
+              "caption_without_table",
+              "unresolved_content"
+            ],
+            "status": "needs_review",
+            "fallback_seconds": 13.999054
+          }
+        }
+      }
+    ],
+    "schema_version": 1,
+    "parser_profile": "fusion-pdf-cpu-v3:page-fallback-v1",
+    "attachments": [],
+    "warnings": [
+      "pdf_layout_and_table_detection_unverified",
+      "pdf_reading_order_inferred:page:2",
+      "pdf_page_route:{\"fallback_attempted\": false, \"fallback_seconds\": 0.0, \"page\": 1, \"primary_reasons\": [], \"remaining_reasons\": [], \"selected_parser\": \"bear\", \"source_fidelity\": \"unverified\", \"status\": \"heuristic_checks_passed\"}",
+      "pdf_page_route:{\"candidate_parser_versions\": [\"2.148.0\"], \"candidate_reasons\": [\"caption_without_table\"], \"fallback_attempted\": true, \"fallback_seconds\": 13.999054, \"fallback_status\": \"rejected_or_ambiguous\", \"page\": 2, \"primary_reasons\": [\"caption_without_table\", \"unresolved_content\"], \"remaining_reasons\": [\"caption_without_table\", \"unresolved_content\"], \"selected_parser\": \"bear\", \"source_fidelity\": \"unverified\", \"status\": \"needs_review\"}",
+      "pdf_needs_review:page:2"
+    ]
+  },
+  "scope": "One synthetic fixture; not a representative document-quality benchmark"
+}

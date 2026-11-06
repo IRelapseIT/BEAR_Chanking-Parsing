@@ -1,0 +1,2379 @@
+{
+  "model": {
+    "model_id": "BAAI/bge-m3",
+    "model_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "tokenizer_revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "vector_dimension": 1024,
+    "max_input_tokens": 512,
+    "query_prefix": "",
+    "document_prefix": "",
+    "similarity_prefix": ""
+  },
+  "scope": "CPU float32, 4 threads, microbatch 4, exact cosine dense retrieval; no reranker",
+  "corpus_sha256": "834d906643ed3961962f78df7f4a8fee4d14428de5b2384159a803478073155f",
+  "project": "D:/CODEX/BEAR/BEAR_BGE_M3",
+  "checks": {
+    "batch_padding_invariance": {
+      "max_abs_difference": 1.043081283569336e-07,
+      "norms": [
+        1.0000000131298408,
+        1.0000000128440343
+      ]
+    },
+    "wrong_model_rejected": true,
+    "oversize_rejected_before_http": true,
+    "live_qdrant_retrieval_and_isolation": true,
+    "whole_table_row_and_token_validation": true,
+    "failed_reindex_preserves_old_and_retry_activates_new": true
+  },
+  "load_seconds": 4.447851700009778,
+  "retrieval": {
+    "documents": 174,
+    "fixed_chunks": 288,
+    "document_seconds": 225.3399158999673,
+    "query_seconds": 5.034600500017405,
+    "max_model_tokens": 320,
+    "metrics": {
+      "queries": 66,
+      "hit_at_1": 0.7727272727272727,
+      "hit_at_5": 0.9242424242424242,
+      "recall_at_5": 0.9181818181818182,
+      "mrr_at_10": 0.8434343434343434,
+      "ndcg_at_10": 0.8643687185236492
+    },
+    "groups": {
+      "cross_en_ru": {
+        "queries": 2,
+        "hit_at_1": 1.0,
+        "hit_at_5": 1.0,
+        "recall_at_5": 1.0,
+        "mrr_at_10": 1.0,
+        "ndcg_at_10": 1.0
+      },
+      "cross_ru_en": {
+        "queries": 2,
+        "hit_at_1": 1.0,
+        "hit_at_5": 1.0,
+        "recall_at_5": 1.0,
+        "mrr_at_10": 1.0,
+        "ndcg_at_10": 1.0
+      },
+      "en": {
+        "queries": 5,
+        "hit_at_1": 1.0,
+        "hit_at_5": 1.0,
+        "recall_at_5": 1.0,
+        "mrr_at_10": 1.0,
+        "ndcg_at_10": 1.0
+      },
+      "ru": {
+        "queries": 17,
+        "hit_at_1": 0.8823529411764706,
+        "hit_at_5": 1.0,
+        "recall_at_5": 1.0,
+        "mrr_at_10": 0.9411764705882353,
+        "ndcg_at_10": 0.9565799710084067
+      },
+      "scifact": {
+        "queries": 40,
+        "hit_at_1": 0.675,
+        "hit_at_5": 0.875,
+        "recall_at_5": 0.865,
+        "mrr_at_10": 0.7666666666666667,
+        "ndcg_at_10": 0.7946618978854484
+      }
+    },
+    "inference": {
+      "requests": 23,
+      "texts": 354,
+      "tokens": 62156
+    },
+    "queries": [
+      {
+        "id": "scifact/100",
+        "text": "All hematopoietic stem cells segregate their chromosomes randomly.",
+        "relevant_ids": [
+          "scifact/4381486"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/4381486",
+            "score": 0.6583666304519633
+          },
+          {
+            "id": "scifact/4388470",
+            "score": 0.6332989192086098
+          },
+          {
+            "id": "scifact/2547636",
+            "score": 0.5818557416759601
+          },
+          {
+            "id": "scifact/18909530",
+            "score": 0.5707518141743724
+          },
+          {
+            "id": "scifact/11289247",
+            "score": 0.550445572943968
+          }
+        ]
+      },
+      {
+        "id": "scifact/1012",
+        "text": "Radioiodine treatment of non-toxic multinodular goitre reduces thyroid volume.",
+        "relevant_ids": [
+          "scifact/9745001"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/9745001",
+            "score": 0.8044448956704771
+          },
+          {
+            "id": "scifact/26026009",
+            "score": 0.6845711189089538
+          },
+          {
+            "id": "scifact/43122426",
+            "score": 0.6314166883878759
+          },
+          {
+            "id": "scifact/5114940",
+            "score": 0.5409322832083068
+          },
+          {
+            "id": "scifact/7986878",
+            "score": 0.5204128597956442
+          }
+        ]
+      },
+      {
+        "id": "scifact/1014",
+        "text": "Rapamycin decreases the concentration of triacylglycerols in fruit flies.",
+        "relevant_ids": [
+          "scifact/6277638"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/6277638",
+            "score": 0.5642188483442061
+          },
+          {
+            "id": "scifact/12409683",
+            "score": 0.5236435349883733
+          },
+          {
+            "id": "scifact/18557974",
+            "score": 0.5220165898665504
+          },
+          {
+            "id": "scifact/14105446",
+            "score": 0.4970849434720136
+          },
+          {
+            "id": "scifact/19752008",
+            "score": 0.4877896278472706
+          }
+        ]
+      },
+      {
+        "id": "scifact/1020",
+        "text": "Rapid up-regulation and higher basal expression of interferon-induced genes increase survival of granule cell neurons that are infected by West Nile virus.",
+        "relevant_ids": [
+          "scifact/9433958"
+        ],
+        "group": "scifact",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "scifact/10559501",
+            "score": 0.6767140298597903
+          },
+          {
+            "id": "scifact/9433958",
+            "score": 0.6429550907019096
+          },
+          {
+            "id": "scifact/1049501",
+            "score": 0.5740796182626081
+          },
+          {
+            "id": "scifact/2266471",
+            "score": 0.5307248318298021
+          },
+          {
+            "id": "scifact/12885341",
+            "score": 0.5294689683498907
+          }
+        ]
+      },
+      {
+        "id": "scifact/1086",
+        "text": "Sildenafil improves erectile function in men who experience sexual dysfunction as a result of the use of SSRI antidepressants.",
+        "relevant_ids": [
+          "scifact/39281140"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/39281140",
+            "score": 0.784218598409538
+          },
+          {
+            "id": "scifact/3981244",
+            "score": 0.5843012448399613
+          },
+          {
+            "id": "scifact/5114940",
+            "score": 0.561872425851168
+          },
+          {
+            "id": "scifact/23581096",
+            "score": 0.5107330849019025
+          },
+          {
+            "id": "scifact/15521377",
+            "score": 0.486280534683728
+          }
+        ]
+      },
+      {
+        "id": "scifact/1137",
+        "text": "TNFAIP3 is a tumor suppressor in glioblastoma.",
+        "relevant_ids": [
+          "scifact/33370"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/33370",
+            "score": 0.6255908685632975
+          },
+          {
+            "id": "scifact/470625",
+            "score": 0.562298670717209
+          },
+          {
+            "id": "scifact/3559136",
+            "score": 0.5412628434284207
+          },
+          {
+            "id": "scifact/19752008",
+            "score": 0.5082927232796833
+          },
+          {
+            "id": "scifact/52925737",
+            "score": 0.4987573329972829
+          }
+        ]
+      },
+      {
+        "id": "scifact/1187",
+        "text": "The YAP1 and TEAD complex tanslocates into the nucleus where it interacts with transcription factors and DNA-binding proteins that modulate target gene transcription.",
+        "relevant_ids": [
+          "scifact/52873726"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/52873726",
+            "score": 0.6574519472006524
+          },
+          {
+            "id": "scifact/19099739",
+            "score": 0.5639238319961266
+          },
+          {
+            "id": "scifact/3893473",
+            "score": 0.5630806405935774
+          },
+          {
+            "id": "scifact/1897324",
+            "score": 0.562500780810223
+          },
+          {
+            "id": "scifact/23269537",
+            "score": 0.5323389673993907
+          }
+        ]
+      },
+      {
+        "id": "scifact/1196",
+        "text": "The availability of safe places to study is effective at decreasing homelessness.",
+        "relevant_ids": [
+          "scifact/25649714"
+        ],
+        "group": "scifact",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "scifact/31019903",
+            "score": 0.566673635336823
+          },
+          {
+            "id": "scifact/25649714",
+            "score": 0.5594955913155616
+          },
+          {
+            "id": "scifact/5114940",
+            "score": 0.5412193592789819
+          },
+          {
+            "id": "scifact/2140513",
+            "score": 0.5404729829768944
+          },
+          {
+            "id": "scifact/3672261",
+            "score": 0.5093578273715951
+          }
+        ]
+      },
+      {
+        "id": "scifact/1207",
+        "text": "The composition of myosin-II isoform switches from the polarizable B isoform to the more homogenous A isoform during hematopoietic differentiation.",
+        "relevant_ids": [
+          "scifact/18909530"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/18909530",
+            "score": 0.6345481279676459
+          },
+          {
+            "id": "scifact/4398832",
+            "score": 0.5525258633885674
+          },
+          {
+            "id": "scifact/17919731",
+            "score": 0.52129671109278
+          },
+          {
+            "id": "scifact/344240",
+            "score": 0.5168727690865692
+          },
+          {
+            "id": "scifact/8724666",
+            "score": 0.5148595916999619
+          }
+        ]
+      },
+      {
+        "id": "scifact/1266",
+        "text": "The risk of breast cancer among parous women increases with placental weight of pregnancies, and this association is strongest for premenopausal breast cancer.",
+        "relevant_ids": [
+          "scifact/37480103"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/37480103",
+            "score": 0.7639554184882669
+          },
+          {
+            "id": "scifact/13831842",
+            "score": 0.752537451182523
+          },
+          {
+            "id": "scifact/13765757",
+            "score": 0.7078850479297752
+          },
+          {
+            "id": "scifact/15512462",
+            "score": 0.6538102652897887
+          },
+          {
+            "id": "scifact/21874312",
+            "score": 0.6161427765962656
+          }
+        ]
+      },
+      {
+        "id": "scifact/1281",
+        "text": "The ureABIEFGH gene cluster is induced by nickel (II) ion.",
+        "relevant_ids": [
+          "scifact/4387784"
+        ],
+        "group": "scifact",
+        "rank": 12,
+        "recall_at_5": 0.0,
+        "ndcg_at_10": 0.0,
+        "top_5": [
+          {
+            "id": "scifact/29214508",
+            "score": 0.5893123954827274
+          },
+          {
+            "id": "scifact/1049501",
+            "score": 0.4964644664161128
+          },
+          {
+            "id": "scifact/3727986",
+            "score": 0.47848754363531343
+          },
+          {
+            "id": "scifact/9433958",
+            "score": 0.46487084005063595
+          },
+          {
+            "id": "scifact/22767022",
+            "score": 0.4646122532955973
+          }
+        ]
+      },
+      {
+        "id": "scifact/129",
+        "text": "Articles published in open access format are less likely to be cited than traditional journals.",
+        "relevant_ids": [
+          "scifact/27768226"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/27768226",
+            "score": 0.6940082162041652
+          },
+          {
+            "id": "scifact/10577574",
+            "score": 0.5766887497419004
+          },
+          {
+            "id": "scifact/12443371",
+            "score": 0.48689444955282735
+          },
+          {
+            "id": "scifact/18340282",
+            "score": 0.46046537547150296
+          },
+          {
+            "id": "scifact/6387956",
+            "score": 0.43764611448023305
+          }
+        ]
+      },
+      {
+        "id": "scifact/133",
+        "text": "Assembly of invadopodia is triggered by focal generation of phosphatidylinositol-3,4-biphosphate and the activation of the nonreceptor tyrosine kinase Src.",
+        "relevant_ids": [
+          "scifact/12640810",
+          "scifact/16280642",
+          "scifact/17934082",
+          "scifact/38485364",
+          "scifact/6969753"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 0.6,
+        "ndcg_at_10": 0.7756199604526248,
+        "top_5": [
+          {
+            "id": "scifact/16280642",
+            "score": 0.6405155313613938
+          },
+          {
+            "id": "scifact/86694016",
+            "score": 0.6300806929729784
+          },
+          {
+            "id": "scifact/12640810",
+            "score": 0.6208014668231345
+          },
+          {
+            "id": "scifact/6969753",
+            "score": 0.57528218339923
+          },
+          {
+            "id": "scifact/19752008",
+            "score": 0.532135286943813
+          }
+        ]
+      },
+      {
+        "id": "scifact/1344",
+        "text": "Up-regulation of the p53 pathway and related molecular events casues cancer resistance and results in a significantly shortened lifespan marked by senescent cells and accelerated organismal aging.",
+        "relevant_ids": [
+          "scifact/9559146"
+        ],
+        "group": "scifact",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "scifact/6896063",
+            "score": 0.7614909657360608
+          },
+          {
+            "id": "scifact/9559146",
+            "score": 0.7535851838430601
+          },
+          {
+            "id": "scifact/15521377",
+            "score": 0.6630064018415589
+          },
+          {
+            "id": "scifact/9513785",
+            "score": 0.6182718909497859
+          },
+          {
+            "id": "scifact/2547636",
+            "score": 0.5939150854326789
+          }
+        ]
+      },
+      {
+        "id": "scifact/1359",
+        "text": "Varenicline monotherapy is more effective after 12 weeks of treatment compared to combination nicotine replacement therapies with varenicline or bupropion.",
+        "relevant_ids": [
+          "scifact/11614737"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/11614737",
+            "score": 0.7522545614918241
+          },
+          {
+            "id": "scifact/5114940",
+            "score": 0.7197641204413769
+          },
+          {
+            "id": "scifact/24019260",
+            "score": 0.626937254906425
+          },
+          {
+            "id": "scifact/24211561",
+            "score": 0.568476803968896
+          },
+          {
+            "id": "scifact/23349986",
+            "score": 0.5383584248582511
+          }
+        ]
+      },
+      {
+        "id": "scifact/143",
+        "text": "Autologous transplantation of mesenchymal stem cells causes fewer opportunistic infections than induction therapy with anti-interleukin-2 receptor antibodies.",
+        "relevant_ids": [
+          "scifact/10582939"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/10582939",
+            "score": 0.716908130901088
+          },
+          {
+            "id": "scifact/40164383",
+            "score": 0.6061998817342071
+          },
+          {
+            "id": "scifact/13106686",
+            "score": 0.5545901463253079
+          },
+          {
+            "id": "scifact/3863543",
+            "score": 0.5472488318964068
+          },
+          {
+            "id": "scifact/40365566",
+            "score": 0.5385155174582437
+          }
+        ]
+      },
+      {
+        "id": "scifact/185",
+        "text": "Breast cancer development is determined exclusively by genetic factors.",
+        "relevant_ids": [
+          "scifact/18340282"
+        ],
+        "group": "scifact",
+        "rank": 3,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.5,
+        "top_5": [
+          {
+            "id": "scifact/21874312",
+            "score": 0.6552542124500831
+          },
+          {
+            "id": "scifact/13831842",
+            "score": 0.6170858860417759
+          },
+          {
+            "id": "scifact/18340282",
+            "score": 0.6087345020871642
+          },
+          {
+            "id": "scifact/37480103",
+            "score": 0.5809880946922021
+          },
+          {
+            "id": "scifact/13765757",
+            "score": 0.5708536262686076
+          }
+        ]
+      },
+      {
+        "id": "scifact/219",
+        "text": "CX3CR1 on the Th2 cells suppresses airway inflammation.",
+        "relevant_ids": [
+          "scifact/21366394"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/21366394",
+            "score": 0.7289661362988598
+          },
+          {
+            "id": "scifact/20311968",
+            "score": 0.6168573007899503
+          },
+          {
+            "id": "scifact/40365566",
+            "score": 0.5898543173078993
+          },
+          {
+            "id": "scifact/33912020",
+            "score": 0.5373767422577774
+          },
+          {
+            "id": "scifact/10559501",
+            "score": 0.5303490062604622
+          }
+        ]
+      },
+      {
+        "id": "scifact/232",
+        "text": "Cataract and trachoma are the primary cause of blindness in Southern Sudan.",
+        "relevant_ids": [
+          "scifact/10536636"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/10536636",
+            "score": 0.7167649018797027
+          },
+          {
+            "id": "scifact/7655029",
+            "score": 0.7090246055526714
+          },
+          {
+            "id": "scifact/29090823",
+            "score": 0.6266692938816809
+          },
+          {
+            "id": "scifact/1617327",
+            "score": 0.45391298459093515
+          },
+          {
+            "id": "scifact/13619127",
+            "score": 0.44868301839730274
+          }
+        ]
+      },
+      {
+        "id": "scifact/237",
+        "text": "Cells lacking clpC have a defect in sporulation efficiency in Bacillus subtilis.",
+        "relevant_ids": [
+          "scifact/4942718"
+        ],
+        "group": "scifact",
+        "rank": 3,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.5,
+        "top_5": [
+          {
+            "id": "scifact/12881593",
+            "score": 0.620303557472409
+          },
+          {
+            "id": "scifact/34386619",
+            "score": 0.5944111901276563
+          },
+          {
+            "id": "scifact/4942718",
+            "score": 0.5724904545218559
+          },
+          {
+            "id": "scifact/24612804",
+            "score": 0.4876953696259498
+          },
+          {
+            "id": "scifact/4381486",
+            "score": 0.4843397289237674
+          }
+        ]
+      },
+      {
+        "id": "scifact/303",
+        "text": "DMRT1 is a sex-determining gene that is epigenetically regulated by the MHM region.",
+        "relevant_ids": [
+          "scifact/4388470"
+        ],
+        "group": "scifact",
+        "rank": 6,
+        "recall_at_5": 0.0,
+        "ndcg_at_10": 0.3562071871080222,
+        "top_5": [
+          {
+            "id": "scifact/4085204",
+            "score": 0.5541555167302504
+          },
+          {
+            "id": "scifact/23581096",
+            "score": 0.5238477393034012
+          },
+          {
+            "id": "scifact/11289247",
+            "score": 0.5015598316813581
+          },
+          {
+            "id": "scifact/6309659",
+            "score": 0.49473844538929995
+          },
+          {
+            "id": "scifact/2151983",
+            "score": 0.48704386105103215
+          }
+        ]
+      },
+      {
+        "id": "scifact/324",
+        "text": "Deleting Raptor reduces G-CSF levels.",
+        "relevant_ids": [
+          "scifact/2014909"
+        ],
+        "group": "scifact",
+        "rank": 24,
+        "recall_at_5": 0.0,
+        "ndcg_at_10": 0.0,
+        "top_5": [
+          {
+            "id": "scifact/10582939",
+            "score": 0.5198470285846151
+          },
+          {
+            "id": "scifact/22180793",
+            "score": 0.5101133461441361
+          },
+          {
+            "id": "scifact/5114940",
+            "score": 0.5000139375687712
+          },
+          {
+            "id": "scifact/3559136",
+            "score": 0.4958455055785204
+          },
+          {
+            "id": "scifact/8764879",
+            "score": 0.49223933769036876
+          }
+        ]
+      },
+      {
+        "id": "scifact/338",
+        "text": "Dexamethasone decreases risk of postoperative bleeding.",
+        "relevant_ids": [
+          "scifact/23349986"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/23349986",
+            "score": 0.7194844558256854
+          },
+          {
+            "id": "scifact/24211561",
+            "score": 0.6954924377467158
+          },
+          {
+            "id": "scifact/36288526",
+            "score": 0.5542880258632762
+          },
+          {
+            "id": "scifact/13619127",
+            "score": 0.5370330371093615
+          },
+          {
+            "id": "scifact/5114940",
+            "score": 0.5137085990553079
+          }
+        ]
+      },
+      {
+        "id": "scifact/415",
+        "text": "Female carriers of the Apolipoprotein E4 (APOE4) allele have increased risk for dementia.",
+        "relevant_ids": [
+          "scifact/6309659"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/6309659",
+            "score": 0.7368774588701051
+          },
+          {
+            "id": "scifact/4709641",
+            "score": 0.6786049748832589
+          },
+          {
+            "id": "scifact/12443371",
+            "score": 0.6383118720698604
+          },
+          {
+            "id": "scifact/7221410",
+            "score": 0.5412891496741443
+          },
+          {
+            "id": "scifact/18340282",
+            "score": 0.5334420484531539
+          }
+        ]
+      },
+      {
+        "id": "scifact/443",
+        "text": "GATA-3 is important for hematopoietic stem cell (HSC) function.",
+        "relevant_ids": [
+          "scifact/10165258"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/10165258",
+            "score": 0.803793316024447
+          },
+          {
+            "id": "scifact/8724666",
+            "score": 0.5562364770051009
+          },
+          {
+            "id": "scifact/16728949",
+            "score": 0.5537501159107354
+          },
+          {
+            "id": "scifact/6896063",
+            "score": 0.5490992167421317
+          },
+          {
+            "id": "scifact/33370",
+            "score": 0.539013734170943
+          }
+        ]
+      },
+      {
+        "id": "scifact/5",
+        "text": "1/2000 in UK have abnormal PrP positivity.",
+        "relevant_ids": [
+          "scifact/13734012"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/13734012",
+            "score": 0.5859327905543457
+          },
+          {
+            "id": "scifact/3863543",
+            "score": 0.49900658475923015
+          },
+          {
+            "id": "scifact/5835149",
+            "score": 0.49778501962296673
+          },
+          {
+            "id": "scifact/9638032",
+            "score": 0.4951854410323504
+          },
+          {
+            "id": "scifact/21616324",
+            "score": 0.49393182231990873
+          }
+        ]
+      },
+      {
+        "id": "scifact/527",
+        "text": "Homozygous deletion of murine Sbds gene from osterix-expressing mesenchymal stem and progenitor cells (MPCs) prevents oxidative stress.",
+        "relevant_ids": [
+          "scifact/3863543"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/3863543",
+            "score": 0.573177926648327
+          },
+          {
+            "id": "scifact/9559146",
+            "score": 0.5553622764205736
+          },
+          {
+            "id": "scifact/1617327",
+            "score": 0.5334604528274081
+          },
+          {
+            "id": "scifact/16728949",
+            "score": 0.512257718776837
+          },
+          {
+            "id": "scifact/6896063",
+            "score": 0.5099665682737801
+          }
+        ]
+      },
+      {
+        "id": "scifact/554",
+        "text": "Immune complex triggered cell death leads to extracellular release of neutrophil protein HMGB1.",
+        "relevant_ids": [
+          "scifact/1049501"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/1049501",
+            "score": 0.5822695350774935
+          },
+          {
+            "id": "scifact/52925737",
+            "score": 0.5820170937220353
+          },
+          {
+            "id": "scifact/14853989",
+            "score": 0.5422764114896961
+          },
+          {
+            "id": "scifact/11289247",
+            "score": 0.5419810925595657
+          },
+          {
+            "id": "scifact/18909530",
+            "score": 0.5187782073635938
+          }
+        ]
+      },
+      {
+        "id": "scifact/578",
+        "text": "In mouse models, the loss of CSF1R facilitates MOZ-TIF2-induced leuekmogenesis.",
+        "relevant_ids": [
+          "scifact/8764879"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/8764879",
+            "score": 0.6724131468473599
+          },
+          {
+            "id": "scifact/3559136",
+            "score": 0.5371936127471835
+          },
+          {
+            "id": "scifact/24612804",
+            "score": 0.5316497074569096
+          },
+          {
+            "id": "scifact/1617327",
+            "score": 0.5302243512420421
+          },
+          {
+            "id": "scifact/18600579",
+            "score": 0.528025598205251
+          }
+        ]
+      },
+      {
+        "id": "scifact/598",
+        "text": "Incidence rates of cervical cancer have increased due to nationwide screening programs based primarily on cytology to detect uterine cervical cancer.",
+        "relevant_ids": [
+          "scifact/25742130"
+        ],
+        "group": "scifact",
+        "rank": 3,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.5,
+        "top_5": [
+          {
+            "id": "scifact/6561200",
+            "score": 0.6820588312205331
+          },
+          {
+            "id": "scifact/27446873",
+            "score": 0.6637267357833166
+          },
+          {
+            "id": "scifact/25742130",
+            "score": 0.6328505064389922
+          },
+          {
+            "id": "scifact/15512462",
+            "score": 0.618779754482413
+          },
+          {
+            "id": "scifact/21874312",
+            "score": 0.6075506018991177
+          }
+        ]
+      },
+      {
+        "id": "scifact/613",
+        "text": "Increased microtubule acetylation repairs LRRK2 Roc-COR domain mutation induced locomotor deficits.",
+        "relevant_ids": [
+          "scifact/9638032"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/9638032",
+            "score": 0.7741899878785242
+          },
+          {
+            "id": "scifact/4709641",
+            "score": 0.5349488710314386
+          },
+          {
+            "id": "scifact/2831620",
+            "score": 0.5204207035302391
+          },
+          {
+            "id": "scifact/21366394",
+            "score": 0.5129694561037004
+          },
+          {
+            "id": "scifact/16056410",
+            "score": 0.5066000952606873
+          }
+        ]
+      },
+      {
+        "id": "scifact/644",
+        "text": "Insulin increases risk of severe kidney failure.",
+        "relevant_ids": [
+          "scifact/13619127"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/13619127",
+            "score": 0.5943378391566507
+          },
+          {
+            "id": "scifact/24921368",
+            "score": 0.5762501946143421
+          },
+          {
+            "id": "scifact/470625",
+            "score": 0.531031242318134
+          },
+          {
+            "id": "scifact/31019903",
+            "score": 0.5149941135333617
+          },
+          {
+            "id": "scifact/9638032",
+            "score": 0.5137559372015241
+          }
+        ]
+      },
+      {
+        "id": "scifact/756",
+        "text": "Many proteins in human cells can be post-translationally modified at lysine residues via acetylation.",
+        "relevant_ids": [
+          "scifact/2831620"
+        ],
+        "group": "scifact",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "scifact/27134527",
+            "score": 0.7559805846464684
+          },
+          {
+            "id": "scifact/2831620",
+            "score": 0.6812788621641234
+          },
+          {
+            "id": "scifact/17919731",
+            "score": 0.6659832722813054
+          },
+          {
+            "id": "scifact/17368516",
+            "score": 0.5492038788521232
+          },
+          {
+            "id": "scifact/16056410",
+            "score": 0.5456688423353826
+          }
+        ]
+      },
+      {
+        "id": "scifact/805",
+        "text": "Monoclonal antibody targeting of N-cadherin inhibits metastasis.",
+        "relevant_ids": [
+          "scifact/22180793"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/22180793",
+            "score": 0.7416892520347931
+          },
+          {
+            "id": "scifact/3727986",
+            "score": 0.5738752987642364
+          },
+          {
+            "id": "scifact/7986878",
+            "score": 0.5495395725406389
+          },
+          {
+            "id": "scifact/4429932",
+            "score": 0.5181978135868608
+          },
+          {
+            "id": "scifact/3559136",
+            "score": 0.516255300487397
+          }
+        ]
+      },
+      {
+        "id": "scifact/811",
+        "text": "Mutant mice lacking SVCT2 have greatly increased ascorbic acid levels in both brain and adrenals.",
+        "relevant_ids": [
+          "scifact/19799455"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/19799455",
+            "score": 0.5997350986589959
+          },
+          {
+            "id": "scifact/40164383",
+            "score": 0.5147507786547433
+          },
+          {
+            "id": "scifact/25687558",
+            "score": 0.5122187611930684
+          },
+          {
+            "id": "scifact/11289247",
+            "score": 0.5071716695693798
+          },
+          {
+            "id": "scifact/2266471",
+            "score": 0.5037061292277232
+          }
+        ]
+      },
+      {
+        "id": "scifact/830",
+        "text": "NF2 (Merlin) causes phosphorylation and subsequent cytoplasmic sequestration of YAP in Drosophila by activating LATS1/2 kinases.",
+        "relevant_ids": [
+          "scifact/1897324"
+        ],
+        "group": "scifact",
+        "rank": 21,
+        "recall_at_5": 0.0,
+        "ndcg_at_10": 0.0,
+        "top_5": [
+          {
+            "id": "scifact/735130",
+            "score": 0.5820654120480729
+          },
+          {
+            "id": "scifact/33912020",
+            "score": 0.5784591252596132
+          },
+          {
+            "id": "scifact/86694016",
+            "score": 0.5548955597803007
+          },
+          {
+            "id": "scifact/12640810",
+            "score": 0.5466044871232089
+          },
+          {
+            "id": "scifact/52873726",
+            "score": 0.5423687565139605
+          }
+        ]
+      },
+      {
+        "id": "scifact/887",
+        "text": "Only a minority of cells survive development after differentiation into stress-resistant spores.",
+        "relevant_ids": [
+          "scifact/18855191"
+        ],
+        "group": "scifact",
+        "rank": 12,
+        "recall_at_5": 0.0,
+        "ndcg_at_10": 0.0,
+        "top_5": [
+          {
+            "id": "scifact/4388470",
+            "score": 0.5474801956404478
+          },
+          {
+            "id": "scifact/2140513",
+            "score": 0.5335942678240294
+          },
+          {
+            "id": "scifact/9559146",
+            "score": 0.5267008761754775
+          },
+          {
+            "id": "scifact/4942718",
+            "score": 0.523776683907559
+          },
+          {
+            "id": "scifact/15521377",
+            "score": 0.5074344446679816
+          }
+        ]
+      },
+      {
+        "id": "scifact/956",
+        "text": "Pleiotropic coupling of GLP-1R to intracellular effectors promotes distinct profiles of cellular signaling.",
+        "relevant_ids": [
+          "scifact/12956194"
+        ],
+        "group": "scifact",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "scifact/3127341",
+            "score": 0.6151127309614283
+          },
+          {
+            "id": "scifact/12956194",
+            "score": 0.6148619575868639
+          },
+          {
+            "id": "scifact/31107919",
+            "score": 0.5654481683790971
+          },
+          {
+            "id": "scifact/39539647",
+            "score": 0.5439474170869821
+          },
+          {
+            "id": "scifact/40473317",
+            "score": 0.5378666047675809
+          }
+        ]
+      },
+      {
+        "id": "scifact/967",
+        "text": "Pretreatment with the Arp2/3 inhibitor CK-666 affects lamelliopodia formation.",
+        "relevant_ids": [
+          "scifact/2119889",
+          "scifact/8997410"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/8997410",
+            "score": 0.7132234944198775
+          },
+          {
+            "id": "scifact/2119889",
+            "score": 0.5615215447381939
+          },
+          {
+            "id": "scifact/22767022",
+            "score": 0.536385893063771
+          },
+          {
+            "id": "scifact/86694016",
+            "score": 0.5253166276943705
+          },
+          {
+            "id": "scifact/15521377",
+            "score": 0.485459414614985
+          }
+        ]
+      },
+      {
+        "id": "scifact/982",
+        "text": "Proteins synthesized at the growth cone are ubiquitinated at a higher rate than proteins from the cell body.",
+        "relevant_ids": [
+          "scifact/2988714"
+        ],
+        "group": "scifact",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "scifact/2988714",
+            "score": 0.6004993037754092
+          },
+          {
+            "id": "scifact/17919731",
+            "score": 0.5198389236779863
+          },
+          {
+            "id": "scifact/27134527",
+            "score": 0.5105184773631052
+          },
+          {
+            "id": "scifact/9513785",
+            "score": 0.5090894421282859
+          },
+          {
+            "id": "scifact/2547636",
+            "score": 0.5086596083963957
+          }
+        ]
+      },
+      {
+        "id": "control/refund",
+        "text": "Каков срок возврата денег в Норде за товар без брака?",
+        "relevant_ids": [
+          "control/refund"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/refund",
+            "score": 0.6976230872602697
+          },
+          {
+            "id": "control/refund-bad",
+            "score": 0.6949547319161781
+          },
+          {
+            "id": "control/backup-recovery",
+            "score": 0.42230892537294135
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.3879837904624629
+          },
+          {
+            "id": "control/backup",
+            "score": 0.38761884222387555
+          }
+        ]
+      },
+      {
+        "id": "control/refund-bad",
+        "text": "За сколько рабочих дней Норд заменяет товар с браком?",
+        "relevant_ids": [
+          "control/refund-bad"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/refund-bad",
+            "score": 0.7807409269767088
+          },
+          {
+            "id": "control/refund",
+            "score": 0.6863130991333632
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.46193740852651405
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.44337487361350714
+          },
+          {
+            "id": "control/invoice",
+            "score": 0.40483831568680234
+          }
+        ]
+      },
+      {
+        "id": "control/oncall",
+        "text": "Как быстро Вега должна устранить критический инцидент ночью?",
+        "relevant_ids": [
+          "control/oncall"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/oncall",
+            "score": 0.7221847216012295
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.5512815353074705
+          },
+          {
+            "id": "control/audit",
+            "score": 0.3945372213913786
+          },
+          {
+            "id": "control/backup-recovery",
+            "score": 0.3868963561395848
+          },
+          {
+            "id": "control/retries-other",
+            "score": 0.3816119599646911
+          }
+        ]
+      },
+      {
+        "id": "control/oncall-reply",
+        "text": "За какое время Орион должен устранить, а не просто подтвердить, критический инцидент?",
+        "relevant_ids": [
+          "control/oncall-reply"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/oncall-reply",
+            "score": 0.7513191088286747
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.5254643060702171
+          },
+          {
+            "id": "control/audit",
+            "score": 0.4794124719015523
+          },
+          {
+            "id": "control/backup-recovery",
+            "score": 0.46318699905132366
+          },
+          {
+            "id": "control/retries-other",
+            "score": 0.4308732306452971
+          }
+        ]
+      },
+      {
+        "id": "control/vacation",
+        "text": "За сколько дней сотрудник должен подать заявку на учебный отпуск?",
+        "relevant_ids": [
+          "control/vacation"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/vacation",
+            "score": 0.7669145762409291
+          },
+          {
+            "id": "control/invoice",
+            "score": 0.5846592324539115
+          },
+          {
+            "id": "control/audit",
+            "score": 0.5048017469766537
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.4906703985182842
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.48057613510652464
+          }
+        ]
+      },
+      {
+        "id": "control/backup",
+        "text": "Сколько времени допускается на восстановление из архивной копии?",
+        "relevant_ids": [
+          "control/backup"
+        ],
+        "group": "ru",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "control/backup-recovery",
+            "score": 0.776731042456428
+          },
+          {
+            "id": "control/backup",
+            "score": 0.7528498104701441
+          },
+          {
+            "id": "control/audit",
+            "score": 0.5799952131096485
+          },
+          {
+            "id": "control/limits",
+            "score": 0.5714025501613889
+          },
+          {
+            "id": "control/audit-short",
+            "score": 0.5701251195001502
+          }
+        ]
+      },
+      {
+        "id": "control/backup-recovery",
+        "text": "Как быстро нужно восстановить основное хранилище?",
+        "relevant_ids": [
+          "control/backup-recovery"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/backup-recovery",
+            "score": 0.7614877716252887
+          },
+          {
+            "id": "control/backup",
+            "score": 0.6168211624674885
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.5434240680337773
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.5061112614770887
+          },
+          {
+            "id": "control/refund",
+            "score": 0.4725706945994088
+          }
+        ]
+      },
+      {
+        "id": "control/sales-table",
+        "text": "Какая выручка была в 2025 году, если затраты составили 100 миллионов?",
+        "relevant_ids": [
+          "control/sales-table"
+        ],
+        "group": "ru",
+        "rank": 2,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 0.6309297535714575,
+        "top_5": [
+          {
+            "id": "control/sales-other",
+            "score": 0.673207170749398
+          },
+          {
+            "id": "control/sales-table",
+            "score": 0.6446777062130684
+          },
+          {
+            "id": "scifact/12991445",
+            "score": 0.3769829218018228
+          },
+          {
+            "id": "control/cross-policy",
+            "score": 0.36784702014367804
+          },
+          {
+            "id": "scifact/29090823",
+            "score": 0.3654368221824551
+          }
+        ]
+      },
+      {
+        "id": "control/sales-other",
+        "text": "Какова выручка филиала в 2025 году при затратах 90 миллионов?",
+        "relevant_ids": [
+          "control/sales-other"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/sales-other",
+            "score": 0.7353716170131822
+          },
+          {
+            "id": "control/sales-table",
+            "score": 0.5350143563588408
+          },
+          {
+            "id": "scifact/18909530",
+            "score": 0.3732534469163335
+          },
+          {
+            "id": "control/port",
+            "score": 0.35483073617820693
+          },
+          {
+            "id": "scifact/4388470",
+            "score": 0.3430874781162718
+          }
+        ]
+      },
+      {
+        "id": "control/limits",
+        "text": "Какой максимальный размер одного загружаемого файла в проекте Север?",
+        "relevant_ids": [
+          "control/limits"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/limits",
+            "score": 0.7973093695636548
+          },
+          {
+            "id": "control/limits-team",
+            "score": 0.704179109237706
+          },
+          {
+            "id": "control/backup-recovery",
+            "score": 0.3996558660706499
+          },
+          {
+            "id": "control/backup",
+            "score": 0.3821209279337415
+          },
+          {
+            "id": "scifact/2107238",
+            "score": 0.36258396113433805
+          }
+        ]
+      },
+      {
+        "id": "control/limits-team",
+        "text": "Сколько документов может загрузить один пользователь в проекте Юг?",
+        "relevant_ids": [
+          "control/limits-team"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/limits-team",
+            "score": 0.8866687265001818
+          },
+          {
+            "id": "control/limits",
+            "score": 0.7123453870301775
+          },
+          {
+            "id": "control/audit-short",
+            "score": 0.458135269080696
+          },
+          {
+            "id": "control/replicas",
+            "score": 0.4419580721928214
+          },
+          {
+            "id": "control/retries-other",
+            "score": 0.43080180982265126
+          }
+        ]
+      },
+      {
+        "id": "control/go-cancel",
+        "text": "Останавливает ли отмена контекста Go запущенную горутину автоматически?",
+        "relevant_ids": [
+          "control/go-cancel"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/go-cancel",
+            "score": 0.7659788042490536
+          },
+          {
+            "id": "control/go-channel",
+            "score": 0.5880328868205272
+          },
+          {
+            "id": "control/retries-other",
+            "score": 0.46750807236344477
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.39360897069774997
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.388689208961701
+          }
+        ]
+      },
+      {
+        "id": "control/go-channel",
+        "text": "Что вернёт чтение из закрытого канала после опустошения буфера?",
+        "relevant_ids": [
+          "control/go-channel"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/go-channel",
+            "score": 0.6631209462254043
+          },
+          {
+            "id": "control/backup-recovery",
+            "score": 0.4922801745228423
+          },
+          {
+            "id": "control/go-cancel",
+            "score": 0.47016738318670376
+          },
+          {
+            "id": "control/retries",
+            "score": 0.4682511670622525
+          },
+          {
+            "id": "scifact/4387784",
+            "score": 0.4466773173004521
+          }
+        ]
+      },
+      {
+        "id": "control/go-sort",
+        "text": "Какая функция возвращает отсортированный массив, сохраняя исходный срез Go?",
+        "relevant_ids": [
+          "control/go-sort"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/go-sort",
+            "score": 0.6106666732268217
+          },
+          {
+            "id": "control/go-inplace",
+            "score": 0.5555081642151406
+          },
+          {
+            "id": "control/go-channel",
+            "score": 0.5160783545625136
+          },
+          {
+            "id": "control/go-cancel",
+            "score": 0.49194232939944293
+          },
+          {
+            "id": "scifact/2107238",
+            "score": 0.42098874777681644
+          }
+        ]
+      },
+      {
+        "id": "control/go-inplace",
+        "text": "Какой вариант сортировки меняет переданный срез без создания копии?",
+        "relevant_ids": [
+          "control/go-inplace"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/go-inplace",
+            "score": 0.6115581195620374
+          },
+          {
+            "id": "control/go-sort",
+            "score": 0.5684203990664485
+          },
+          {
+            "id": "scifact/2107238",
+            "score": 0.4947860281578998
+          },
+          {
+            "id": "scifact/27061085",
+            "score": 0.4461427426753659
+          },
+          {
+            "id": "scifact/14174055",
+            "score": 0.4148363984926021
+          }
+        ]
+      },
+      {
+        "id": "control/tls",
+        "text": "Где лежит приватный ключ домена api.example.test?",
+        "relevant_ids": [
+          "control/tls"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/tls",
+            "score": 0.7626512230225697
+          },
+          {
+            "id": "control/tls-other",
+            "score": 0.7253386444562846
+          },
+          {
+            "id": "control/port",
+            "score": 0.5307618338084981
+          },
+          {
+            "id": "control/audit-short",
+            "score": 0.39482488822274375
+          },
+          {
+            "id": "scifact/2014909",
+            "score": 0.3812027836086867
+          }
+        ]
+      },
+      {
+        "id": "control/tls-other",
+        "text": "Какой файл содержит публичный сертификат admin.example.test?",
+        "relevant_ids": [
+          "control/tls-other"
+        ],
+        "group": "ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/tls-other",
+            "score": 0.755994439043495
+          },
+          {
+            "id": "control/tls",
+            "score": 0.6218140967041419
+          },
+          {
+            "id": "control/port",
+            "score": 0.47155435404634094
+          },
+          {
+            "id": "control/limits",
+            "score": 0.4474007644986717
+          },
+          {
+            "id": "control/audit-short",
+            "score": 0.42326840000438204
+          }
+        ]
+      },
+      {
+        "id": "control/audit",
+        "text": "Какая роль требуется для доступа к журналу аудита?",
+        "relevant_ids": [
+          "control/audit"
+        ],
+        "group": "cross_ru_en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/audit",
+            "score": 0.6033188177451893
+          },
+          {
+            "id": "control/audit-short",
+            "score": 0.5397069992413208
+          },
+          {
+            "id": "control/port",
+            "score": 0.4658601845697756
+          },
+          {
+            "id": "scifact/27768226",
+            "score": 0.4652255622227517
+          },
+          {
+            "id": "control/replicas",
+            "score": 0.4446449848383587
+          }
+        ]
+      },
+      {
+        "id": "control/audit-short",
+        "text": "How long are debug logs retained for developers?",
+        "relevant_ids": [
+          "control/audit-short"
+        ],
+        "group": "en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/audit-short",
+            "score": 0.8118725511062531
+          },
+          {
+            "id": "control/audit",
+            "score": 0.7070556129850893
+          },
+          {
+            "id": "control/backup",
+            "score": 0.5333593585529426
+          },
+          {
+            "id": "control/backup-recovery",
+            "score": 0.4879336317987177
+          },
+          {
+            "id": "control/oncall-reply",
+            "score": 0.45804057153822036
+          }
+        ]
+      },
+      {
+        "id": "control/replicas",
+        "text": "How many acknowledgements are required to confirm an Atlas database write?",
+        "relevant_ids": [
+          "control/replicas"
+        ],
+        "group": "en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/replicas",
+            "score": 0.792875963552233
+          },
+          {
+            "id": "scifact/27768226",
+            "score": 0.48301375118942763
+          },
+          {
+            "id": "control/retries",
+            "score": 0.4211936722146631
+          },
+          {
+            "id": "control/audit-short",
+            "score": 0.4162348106699497
+          },
+          {
+            "id": "control/retries-other",
+            "score": 0.4155379953792173
+          }
+        ]
+      },
+      {
+        "id": "control/retries",
+        "text": "What is the total number of client attempts, including the initial request?",
+        "relevant_ids": [
+          "control/retries"
+        ],
+        "group": "en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/retries",
+            "score": 0.6662669267183441
+          },
+          {
+            "id": "control/retries-other",
+            "score": 0.5504274053377544
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.46082163574819934
+          },
+          {
+            "id": "scifact/13619127",
+            "score": 0.4550015526138879
+          },
+          {
+            "id": "scifact/10582939",
+            "score": 0.4387139865329
+          }
+        ]
+      },
+      {
+        "id": "control/retries-other",
+        "text": "How many total attempts does the background worker permit?",
+        "relevant_ids": [
+          "control/retries-other"
+        ],
+        "group": "en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/retries-other",
+            "score": 0.751836168987234
+          },
+          {
+            "id": "control/retries",
+            "score": 0.5558758715286057
+          },
+          {
+            "id": "control/replicas",
+            "score": 0.4502913614034732
+          },
+          {
+            "id": "scifact/12443371",
+            "score": 0.4231432710366975
+          },
+          {
+            "id": "scifact/2140513",
+            "score": 0.41784534397124307
+          }
+        ]
+      },
+      {
+        "id": "control/invoice",
+        "text": "When must an invoice be submitted, rather than paid?",
+        "relevant_ids": [
+          "control/invoice"
+        ],
+        "group": "en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/invoice",
+            "score": 0.6903993201471703
+          },
+          {
+            "id": "scifact/27768226",
+            "score": 0.4397395298883853
+          },
+          {
+            "id": "control/refund-bad",
+            "score": 0.42356689301643646
+          },
+          {
+            "id": "control/replicas",
+            "score": 0.42257092616832653
+          },
+          {
+            "id": "control/vacation",
+            "score": 0.41966518055122665
+          }
+        ]
+      },
+      {
+        "id": "control/port",
+        "text": "Какой порт используется для административного API во внутренней сети?",
+        "relevant_ids": [
+          "control/port"
+        ],
+        "group": "cross_ru_en",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/port",
+            "score": 0.7426640014178312
+          },
+          {
+            "id": "control/tls",
+            "score": 0.5249642176263372
+          },
+          {
+            "id": "control/tls-other",
+            "score": 0.5064391482852083
+          },
+          {
+            "id": "control/go-cancel",
+            "score": 0.4047416398760884
+          },
+          {
+            "id": "scifact/4387784",
+            "score": 0.40228792565077404
+          }
+        ]
+      },
+      {
+        "id": "control/cross-policy",
+        "text": "What is the nightly hotel reimbursement limit at Bereg?",
+        "relevant_ids": [
+          "control/cross-policy"
+        ],
+        "group": "cross_en_ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/cross-policy",
+            "score": 0.6331940700100368
+          },
+          {
+            "id": "control/cross-pay",
+            "score": 0.5615752200454986
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.4084790710873498
+          },
+          {
+            "id": "control/limits",
+            "score": 0.3855236821653136
+          },
+          {
+            "id": "control/retries",
+            "score": 0.3669312501772981
+          }
+        ]
+      },
+      {
+        "id": "control/cross-pay",
+        "text": "Which daily cap applies to meals at Bereg, excluding airport transport?",
+        "relevant_ids": [
+          "control/cross-pay",
+          "control/cross-policy"
+        ],
+        "group": "cross_en_ru",
+        "rank": 1,
+        "recall_at_5": 1.0,
+        "ndcg_at_10": 1.0,
+        "top_5": [
+          {
+            "id": "control/cross-pay",
+            "score": 0.5745462832384272
+          },
+          {
+            "id": "control/cross-policy",
+            "score": 0.509987453314361
+          },
+          {
+            "id": "control/limits",
+            "score": 0.39206000802077634
+          },
+          {
+            "id": "control/vacation",
+            "score": 0.3787874044114293
+          },
+          {
+            "id": "control/oncall",
+            "score": 0.36731858396598144
+          }
+        ]
+      }
+    ]
+  },
+  "pipeline": [
+    {
+      "file": "refund.txt",
+      "chunks": 1,
+      "seconds": 0.46937960002105683,
+      "branches": {
+        "whole": 1
+      },
+      "fallbacks": {},
+      "max_tokens": 18,
+      "completeness": "complete"
+    },
+    {
+      "file": "stars.txt",
+      "chunks": 1,
+      "seconds": 0.19049069995526224,
+      "branches": {
+        "whole": 1
+      },
+      "fallbacks": {},
+      "max_tokens": 22,
+      "completeness": "complete"
+    },
+    {
+      "file": "ssl.txt",
+      "chunks": 1,
+      "seconds": 0.18483899999409914,
+      "branches": {
+        "whole": 1
+      },
+      "fallbacks": {},
+      "max_tokens": 21,
+      "completeness": "complete"
+    },
+    {
+      "file": "table.md",
+      "chunks": 5,
+      "seconds": 0.33212799998000264,
+      "branches": {
+        "whole": 1,
+        "external": 4
+      },
+      "fallbacks": {},
+      "max_tokens": 30,
+      "completeness": "complete"
+    },
+    {
+      "file": "code.md",
+      "chunks": 2,
+      "seconds": 0.22616339998785406,
+      "branches": {
+        "whole": 2
+      },
+      "fallbacks": {},
+      "max_tokens": 23,
+      "completeness": "complete"
+    },
+    {
+      "file": "html.html",
+      "chunks": 1,
+      "seconds": 0.18907340004807338,
+      "branches": {
+        "whole": 1
+      },
+      "fallbacks": {},
+      "max_tokens": 23,
+      "completeness": "complete"
+    },
+    {
+      "file": "unicode.txt",
+      "chunks": 4,
+      "seconds": 2.6351729999878444,
+      "branches": {
+        "recursive": 4
+      },
+      "fallbacks": {
+        "recursive_failure:ValidationError;source_preserving_repair": 4
+      },
+      "max_tokens": 320,
+      "completeness": "complete"
+    },
+    {
+      "file": "semantic.txt",
+      "chunks": 1,
+      "seconds": 0.7166007999912836,
+      "branches": {
+        "whole": 1
+      },
+      "fallbacks": {},
+      "max_tokens": 287,
+      "completeness": "complete"
+    }
+  ],
+  "collection": "bear_bge_m3_c99bb85c3f2d71a0e1a2",
+  "server_metrics": {
+    "requests": 36,
+    "texts": 376,
+    "tokens": 63747
+  },
+  "peak_rss_mb": 2939.05078125,
+  "total_seconds": 255.16247440001462
+}
