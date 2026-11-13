@@ -1,0 +1,14 @@
+.venv/
+.ocr-venv/
+.docling-venv/
+models/
+artifacts/
+GATES.md
+install-check.log
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.env
+.env.*
