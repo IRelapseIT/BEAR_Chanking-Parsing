@@ -111,7 +111,9 @@ class IndexingService:
         self.external_validators = external_validators or {}
 
     def index(self, result, processing_claim=None):
-        if result.metrics.get("acceptance", {}).get("accepted_for_indexing") is False:
+        from .acceptance import assess
+        if (result.metrics.get("acceptance", {}).get("accepted_for_indexing") is False
+                or not assess(result)["accepted_for_indexing"]):
             raise ValidationError("Документ не прошёл установленную политику приёмки")
         if isinstance(self.counter, CharacterTokenCounter):
             raise ValidationError("Тестовый символьный токенизатор нельзя использовать для индексации")

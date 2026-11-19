@@ -11,6 +11,9 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
+from .field_routing import contains, intersects
+from .table_layout import assign_words, bounds, header_links, logical_order_matches, valid_box, word_text
+from .ocr_verification import normalized
 from bear_text_beta.models import ContentBlock, SourceLocator
 
 from .tables import Cell, grid, rows_from_cells
@@ -98,7 +101,7 @@ def map_docling(payload, page, context, limits):
         text = item.get("text", "")
         metadata = {"parser": "docling", "parser_version": payload["version"], "docling_ref": reference,
                     "docling_confidence": payload.get("confidence", {}),
-                    "coordinate_system": "pdf_points_top_left", "bbox": box}
+                    "coordinate_system": "pdf_points_top_left", "bbox": box, "ocr_engine": "tesseract"}
         role = "heading" if item.get("label") in {"section_header", "title"} else "paragraph"
         if kind == "TABLE":
             cells, cell_boxes, cell_roles = [], {}, {}
@@ -146,7 +149,8 @@ def page_reasons(blocks, warnings, page, policy):
     for warning in warnings:
         if (f":page:{page}" in warning and re.search(rf":page:{page}(?:\D|$)", warning)
                 and any(key in warning for key in (
-                    "unknown_glyph", "reading_order_needs_review", "table_candidate_rejected", "sparse_text_visual"))):
+                    "unknown_glyph", "reading_order_needs_review", "table_candidate_rejected", "sparse_text_visual",
+                    "table_geometry_unverified", "table_headers_unconfirmed"))):
             reasons.add(warning.split(":")[0])
         if warning.startswith(f"pdf_page_failed:{page}:"):
             reasons.add("pdf_page_failed")
@@ -157,7 +161,7 @@ def page_reasons(blocks, warnings, page, policy):
     if len(re.findall(r"(?:Table|Таблица)\s*\d+", text, re.IGNORECASE)) > len(tables):
         reasons.add("caption_without_table")
     for block in blocks:
-        if block.metadata.get("unresolved"):
+        if block.metadata.get("unresolved") and not block.metadata.get("embedded_visual"):
             reasons.add("unresolved_content")
         confidence = block.metadata.get("mean_word_confidence")
         docling_scores = block.metadata.get("docling_confidence", {})
@@ -174,30 +178,105 @@ def page_reasons(blocks, warnings, page, policy):
 
 def preserved(primary, candidate):
     def tokens(blocks):
-        text = " ".join(b.text for b in blocks)
+        text = normalized(" ".join(b.text for b in blocks))
         text = re.sub(r"\(cid:\d+\)", "", text).replace("\ufffd", " ")
         # Preserve signs, decimal separators and percentages as part of a number.
         # A bag of plain \w tokens would incorrectly equate -12 with 12 or 3.14 with 3,14.
-        return Counter(re.findall(r"[+-]?\d+(?:[.,]\d+)*(?:[%‰])?|[^\W\d_]+", text.casefold()))
+        return Counter(re.findall(r"[+-]?\d+(?:[.,]\d+)*(?:\s?[%‰₽$€])?|[^\W\d_]+|[₽$€%‰+]", text.casefold()))
     return not (tokens(primary) - tokens(candidate))
 
 
-def route_pages(document, path, limits, backend=None, policy=None):
+def column_order(candidate, info):
+    from .pdf_adapter import order_regions, text_regions
+
+    boxes = [(b.source.bbox, b) for b in candidate if b.type != "IMAGE"]
+    if not boxes or any(box is None for box, _ in boxes):
+        return False
+    words = [{"x0": box[0], "top": box[1], "x1": box[2], "bottom": box[3], "text": b.text}
+             for box, b in boxes if b.type == "TEXT"]
+    _, gutters, ambiguous = text_regions(words, info["width"])
+    if not gutters or ambiguous:
+        return False
+    regions = [(box[1], box[0], b.type, b.role, i, {"bbox": box})
+               for i, (box, b) in enumerate(boxes)]
+    return [r[4] for r in order_regions(regions, gutters)] == list(range(len(boxes)))
+
+
+def table_evidence(candidate, original, info):
+    tables = [b for b in candidate if b.type == "TABLE"]
+    if not tables:
+        return False
+    source_words = info["native"] + [{**w, "engine": "tesseract"}
+                                     for region in info["ocr"] for w in region["ocr_words"]]
+    for table in tables:
+        box = table.source.bbox
+        cells = [Cell(**c) for c in table.metadata.get("table_cells", [])]
+        coords = table.metadata.get("cell_bboxes", {})
+        if not box or not cells or table.metadata.get("header_inference"):
+            return False
+        if (set(coords) != {c.id for c in cells}
+                or any(not valid_box(area) or not contains(box, area, 1) for area in coords.values())
+                or not logical_order_matches(cells, coords)):
+            return False
+        assigned = assign_words(coords, source_words)
+        if assigned is None or any(
+            normalized(c.text) != normalized(word_text(assigned[c.id])) for c in cells
+        ):
+            return False
+        roles = table.metadata.get("docling_cell_roles", {})
+        links, uncertain = header_links(cells, [key for key, value in roles.items() if value.get("row_header")])
+        if uncertain:
+            return False
+        for before in original:
+            if before.type != "TABLE" or not before.text or not before.source.bbox:
+                continue
+            if intersects(box, before.source.bbox):
+                known = before.metadata.get("table_cells")
+                if known:
+                    positions = {(c.row, c.column): normalized(c.text) for c in cells}
+                    if any(positions.get((c["row"], c["column"])) != normalized(c["text"]) for c in known):
+                        return False
+        table.metadata.update(values_verified=True, table_geometry_source="docling",
+                              cell_header_links=links, unresolved_header_cells=uncertain,
+                              cell_content_bboxes={
+                                  key: bounds([w["bbox_pdf_points"] for w in words])
+                                  for key, words in assigned.items() if words
+                              })
+    return True
+
+
+STRUCTURAL_REASONS = {"pdf_reading_order_needs_review", "pdf_table_candidate_rejected",
+                      "caption_without_table", "pdf_page_failed", "unresolved_content", "pdf_table_headers_unconfirmed"}
+TABLE_REASONS = {"pdf_table_candidate_rejected", "caption_without_table",
+                 "pdf_table_geometry_unverified", "pdf_table_headers_unconfirmed"}
+
+
+def route_pages(document, path, limits, backend=None, policy=None, *, page_inputs=None):
     policy = policy or FallbackPolicy(enabled=os.getenv("BEAR_PDF_DOCLING", "1") == "1")
     if backend is None and os.getenv("BEAR_DOCLING_PYTHON") and os.getenv("BEAR_DOCLING_ARTIFACTS"):
         backend = DoclingProcess(os.environ["BEAR_DOCLING_PYTHON"], os.environ["BEAR_DOCLING_ARTIFACTS"], policy)
-    groups = {}
+    groups = {page: [] for page in (page_inputs or {})}
     for block in document.blocks:
         groups.setdefault(block.source.page, []).append(block)
     # Failed/blank pages can have no extracted text. Failed pages still have placeholder blocks.
     attempts, rebuilt = 0, []
     for page, original in groups.items():
+        info = (page_inputs or {}).get(page)
         reasons = page_reasons(original, document.warnings, page, policy)
         chosen, selected, remaining = original, "bear", reasons
         record = {"page": page, "primary_reasons": reasons, "selected_parser": selected,
                   "fallback_attempted": False, "source_fidelity": "unverified"}
+        if info is not None:
+            record.update(text_layer=info["text_layer"], rotation=info["rotation"],
+                          bbox=[0, 0, info["width"], info["height"]],
+                          primary_engines=["pdfplumber"] + (["tesseract"] if any(
+                              area["status"] != "blank_no_ocr" for area in info["ocr_attempts"]) else []),
+                          ocr_regions=info["ocr_attempts"], blank=info.get("blank", False))
         started = time.perf_counter()
-        if reasons:
+        triggers = set(reasons) & STRUCTURAL_REASONS
+        if triggers:
+            record["fallback_engine"] = "docling"
+            record["fallback_ocr_engine"] = "tesseract"
             if not policy.enabled:
                 record["fallback_status"] = "disabled"
             elif backend is None:
@@ -218,11 +297,18 @@ def route_pages(document, path, limits, backend=None, policy=None):
                     if "low_ocr_confidence" in reasons and not any(
                             "ocr_score" in b.metadata.get("docling_confidence", {}) for b in candidate):
                         issues.append("candidate_ocr_confidence_unknown")
+                    if "pdf_reading_order_needs_review" in reasons and (info is None or not column_order(candidate, info)):
+                        issues.append("column_order_unconfirmed")
+                    needs_table_evidence = TABLE_REASONS.intersection(reasons) or (
+                        info is not None and any(b.type == "TABLE" for b in candidate))
+                    if needs_table_evidence and (info is None or not table_evidence(candidate, original, info)):
+                        issues.append("table_cells_or_headers_unconfirmed")
+                    if not preserved(original, candidate):
+                        issues.append("primary_values_changed")
                     record["candidate_reasons"] = issues
                     record["candidate_parser_versions"] = sorted({
                         b.metadata["parser_version"] for b in candidate if "parser_version" in b.metadata})
-                    # Order-only disagreement has no independent oracle: retain the primary result.
-                    if not issues and preserved(original, candidate) and "pdf_reading_order_needs_review" not in reasons:
+                    if not issues:
                         chosen, selected, remaining = candidate, "docling", []
                         record["fallback_status"] = "selected"
                     else:
@@ -230,11 +316,24 @@ def route_pages(document, path, limits, backend=None, policy=None):
                 except (ValueError, KeyError, TypeError, IndexError, OSError, RuntimeError, subprocess.SubprocessError) as exc:
                     record.update(fallback_status="failed", error_type=type(exc).__name__, fallback_error=str(exc)[:2000])
         record.update(selected_parser=selected, remaining_reasons=remaining,
+                      status_detail="blank" if record.get("blank") else "parsed",
                       status="needs_review" if remaining else "heuristic_checks_passed",
                       fallback_seconds=round(time.perf_counter() - started, 6))
         document.warnings.append("pdf_page_route:" + json.dumps(record, ensure_ascii=False, sort_keys=True))
         if remaining:
             document.warnings.append(f"pdf_needs_review:page:{page}")
+        if selected != "bear":
+            evidence = [block.metadata["ocr_verification"] for block in original
+                        if "ocr_verification" in block.metadata]
+            if evidence:
+                chosen[0].metadata["primary_ocr_verifications"] = evidence
+            layouts = [block.metadata["table_layout_candidates"] for block in original
+                       if "table_layout_candidates" in block.metadata]
+            if layouts:
+                chosen[0].metadata["primary_table_layout_candidates"] = layouts
+            visuals = [asdict(block) for block in original if block.metadata.get("embedded_visual")]
+            if visuals:
+                chosen[0].metadata["primary_visual_regions"] = visuals
         for block in chosen:
             block.metadata["pdf_route"] = record
             block.order = len(rebuilt)

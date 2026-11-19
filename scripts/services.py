@@ -74,6 +74,11 @@ def launch():
         if not Path(config["docling_python"]).is_file() or not Path(config["docling_artifacts"]).is_dir():
             raise RuntimeError("Configured Docling runtime/artifacts are missing")
         env.update(BEAR_DOCLING_PYTHON=config["docling_python"], BEAR_DOCLING_ARTIFACTS=config["docling_artifacts"])
+    if config.get("paddle_python") and config.get("paddle_models"):
+        env.update(BEAR_PADDLE_PYTHON=str(ROOT / config["paddle_python"]),
+                   BEAR_PADDLE_MODELS=str(ROOT / config["paddle_models"]))
+        if config.get("paddle_layout_model"):
+            env["BEAR_PADDLE_LAYOUT_MODEL"] = str(ROOT / config["paddle_layout_model"])
     for key in ("BEAR_TEST_COUNTER", "BEAR_OFFLINE", "BEAR_CHUNKER_URL", "PYTHONPATH"):
         env.pop(key, None)
     python = str(ROOT / ".venv/Scripts/python.exe")

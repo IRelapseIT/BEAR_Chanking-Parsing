@@ -37,5 +37,3 @@ $env:PYTHONPATH='D:/CODEX/BEAR/upgrade/embedding-ml;D:/CODEX/BEAR/BEAR_BGE_M3/be
 $env:BEAR_TEST_TOKENIZER='D:/CODEX/BEAR/BEAR_BGE_M3/models/bge-m3'
 & 'D:/CODEX/BEAR/upgrade/.venv/Scripts/python.exe' -m pytest ../../bear-text-beta/tests ../../bear-fusion-lab/tests -q -p no:cacheprovider
 ```
-
-В публикацию включены исходники и JSON-отчёты; полные vectors.npz исключены. Для текущей проверки Infinity предусмотрена небольшая публичная эталонная фикстура verification/workflow/bge-reference.json. Исторические команды сравнения могут требовать настройки путей и самостоятельной подготовки весов.

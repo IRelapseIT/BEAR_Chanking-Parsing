@@ -99,18 +99,18 @@ def test_large_upload_is_queued(tmp_path):
     try:
         with TestClient(create_app(services)) as client:
             context = DocumentContext("t", "s", "big", 1, "big.txt")
-            response = client.post("/beta/process", files={"file": ("big.txt", b"x" * (8 * 1024 * 1024 + 1))},
+            response = client.post("/v1/documents", files={"file": ("big.txt", b"x" * (8 * 1024 * 1024 + 1))},
                                    data={"context": json.dumps(asdict(context))})
             assert response.status_code == 202
             job_id = response.json()["job_id"]
-            assert client.get(f"/beta/jobs/{job_id}").json()["status"] == "pending"
+            assert client.get(f"/v1/jobs/{job_id}").json()["status"] == "queued"
     finally:
         services.close()
 
 
 def test_api_rejects_oversized_body_before_parsing():
     with TestClient(create_app()) as client:
-        response = client.post("/beta/process", content=b"x", headers={
+        response = client.post("/v1/documents", content=b"x", headers={
             "content-length": str(52 * 1024 * 1024), "content-type": "application/octet-stream"})
         assert response.status_code == 413
 

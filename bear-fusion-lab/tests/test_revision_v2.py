@@ -152,7 +152,7 @@ def test_failed_ocr_page_keeps_following_text_page(tmp_path, monkeypatch):
     import bear_fusion.pdf_adapter as adapter
     path = tmp_path / "retry.pdf"
     c = canvas.Canvas(str(path)); c.showPage(); c.drawString(30, 700, "Surviving page"); c.save()
-    def fail(*args):
+    def fail(*args, **kwargs):
         raise RuntimeError("test OCR failure")
     monkeypatch.setattr(adapter, "ocr_region", fail)
     result = adapter.parse_pdf(path, DocumentContext("t", "s", "d", 1, path.name), FileLimits())
@@ -171,9 +171,10 @@ def test_mixed_page_native_heading_does_not_disable_region_ocr(tmp_path, monkeyp
     c = canvas.Canvas(str(path)); c.drawString(30, 750, "Native heading")
     c.drawImage(str(image), 30, 200, width=300, height=200); c.save()
     targets = []
-    def read(renderer, index, box=None):
+    def read(renderer, index, box=None, *, native=()):
         targets.append(box)
-        return "Text in scan", {"extraction": "ocr"}
+        return "Text in scan", {"extraction": "ocr", "ocr_words": [],
+                                "ocr_crop_box": box, "bbox": box}
     monkeypatch.setattr(adapter, "ocr_region", read)
     result = adapter.parse_pdf(path, DocumentContext("t", "s", "d", 1, path.name), FileLimits())
     assert len(targets) == 1 and targets[0] is not None

@@ -36,5 +36,14 @@ class StructuredMarkdownParser(MDParser):
         directives = re.findall(r"\{\{#(?:rustdoc_include|include)\s+([^}]+)\}\}", text)
         if directives:
             document.warnings.append(f"unresolved_include:{len(directives)}")
-        document.parser_profile = "fusion-markdown-v3"
+        from bear_text_beta.resources import is_status_badge
+        attachments = {a.id: a for a in document.attachments}
+        for block in document.blocks:
+            for attachment_id in block.attachment_ids:
+                attachment = attachments.get(attachment_id)
+                url = attachment.metadata.get("original_target", "") if attachment else ""
+                if block.type == "IMAGE" and is_status_badge(url):
+                    block.metadata.update(resource_policy="status-badge-reference-v1", resource_url=url,
+                                          resource_alt=block.text)
+        document.parser_profile = "fusion-markdown-v4-optional-badges"
         return document

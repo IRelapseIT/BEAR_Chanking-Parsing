@@ -3,8 +3,10 @@ import argparse
 import json
 import time
 from collections import Counter
+from contextlib import nullcontext
 from dataclasses import asdict
 from pathlib import Path
+from unittest.mock import patch
 
 from bear_fusion.pdf_adapter import parse_pdf
 from bear_fusion.pdf_fallback import DoclingProcess, FallbackPolicy
@@ -39,18 +41,18 @@ def main(args):
             writer.line(60, y, 540, y)
     writer.save()
     context = DocumentContext("pdf-smoke", "local", "borderless", 1, source.name)
-    if args.ruled_control:
-        # Explicit positive fault-control: native table validation rejects the grid.
-        # The real Docling parser still receives the original ruled PDF.
-        from bear_fusion import pdf_adapter
-        pdf_adapter.accepted_table = lambda table, page: None
-    start = time.perf_counter()
-    baseline = parse_pdf(source, context, FileLimits(), policy=FallbackPolicy(enabled=False))
-    primary_seconds = time.perf_counter() - start
+    from bear_fusion import pdf_adapter
+    control = (patch.multiple(pdf_adapter, layout_from_boxes=lambda *args: None,
+                              borderless_table=lambda *args: None)
+               if args.ruled_control else nullcontext())
     backend = DoclingProcess(str(args.python), args.artifacts, FallbackPolicy())
-    start = time.perf_counter()
-    routed = parse_pdf(source, context, FileLimits(), fallback=backend)
-    routed_seconds = time.perf_counter() - start
+    with control:
+        start = time.perf_counter()
+        baseline = parse_pdf(source, context, FileLimits(), policy=FallbackPolicy(enabled=False))
+        primary_seconds = time.perf_counter() - start
+        start = time.perf_counter()
+        routed = parse_pdf(source, context, FileLimits(), fallback=backend)
+        routed_seconds = time.perf_counter() - start
     embedding_profile = load_profile(args.tokenizer_dir)
     counter = HFTokenCounter(args.tokenizer_dir, embedding_profile)
     processor = TableProcessor(counter)
@@ -62,7 +64,7 @@ def main(args):
         return [json.loads(w.split(":", 1)[1]) for w in document.warnings if w.startswith("pdf_page_route:")]
     routes = records(routed)
     assert routes[0]["fallback_attempted"] is False
-    assert routes[1]["fallback_attempted"] is True
+    assert routes[1]["fallback_attempted"] == args.ruled_control
     assert [b.text for b in baseline.blocks if b.source.page == 1] == [
         b.text for b in routed.blocks if b.source.page == 1]
     expected_values = [value for row in expected for value in row]
@@ -79,7 +81,7 @@ def main(args):
               "scope": "One synthetic fixture; not a representative document-quality benchmark"}
     (args.output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     assert routes[1].get("fallback_status") != "failed", routes[1]
-    print("REAL_DOCLING_SMOKE_COMPLETED", flush=True)
+    print("PDF_ROUTING_SMOKE_COMPLETED", flush=True)
 
 
 if __name__ == "__main__":

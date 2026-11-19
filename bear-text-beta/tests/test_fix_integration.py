@@ -111,4 +111,4 @@ def test_http_rejects_invalid_generation_before_initializing_services(monkeypatc
         assert client.post("/chunk", json={"document": {}, "profile": {},
                                            "generation_id": "invalid"}).status_code == 422
     with TestClient(create_app()) as client:
-        assert client.post("/beta/index", json={"generation_id": "invalid"}).status_code == 422
+        assert client.post("/beta/index", json={"generation_id": "invalid"}).status_code == 410

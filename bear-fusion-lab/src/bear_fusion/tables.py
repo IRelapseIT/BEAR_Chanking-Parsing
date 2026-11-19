@@ -115,7 +115,17 @@ def restore_docx_tables(path, document):
             before = row.find("w:trPr/w:gridBefore", ns)
             ci = int(before.get(f"{{{ns['w']}}}val", "0")) if before is not None else 0
             for node in row.findall("w:tc", ns):
-                text = "\n".join("".join(t.text or "" for t in p.findall(".//w:t", ns)) for p in node.findall("w:p", ns))
+                def paragraphs(container):
+                    for child in container:
+                        tag = child.tag.split("}")[-1]
+                        if tag == "p":
+                            yield child
+                        elif tag in {"sdt", "sdtContent", "customXml"}:
+                            yield from paragraphs(child)
+                        elif tag not in {"tcPr", "sdtPr", "sdtEndPr"} and any(
+                                n.tag.split("}")[-1] in {"t", "tbl"} for n in child.iter()):
+                            raise ValueError("Unsupported DOCX table cell container: " + tag)
+                text = "\n".join("".join(t.text or "" for t in p.findall(".//w:t", ns)) for p in paragraphs(node))
                 width = node.find("w:tcPr/w:gridSpan", ns)
                 span = int(width.get(f"{{{ns['w']}}}val", "1")) if width is not None else 1
                 merge = node.find("w:tcPr/w:vMerge", ns)
@@ -156,6 +166,20 @@ def context_for(cell, expanded, heads):
     return f"Row {cell.row + 1}" + (f" ({identity})" if identity else "") + f"; {' → '.join(headers) or f'Column {cell.column + 1}'}: "
 
 
+def cell_context(block, cell, cells_by_id, expanded, heads):
+    if cell.row < heads:
+        return "Table headers: "
+    links = block.metadata.get("cell_header_links")
+    if links is None:
+        return context_for(cell, expanded, heads)
+    link = links.get(cell.id, {})
+    headers = [cells_by_id[key].text for key in link.get("column_header_ids", [])]
+    row_labels = [cells_by_id[key].text for key in link.get("row_header_ids", [])]
+    identity = " → ".join(row_labels)
+    return (f"Row {cell.row + 1}" + (f" ({identity})" if identity else "")
+            + f"; {' → '.join(headers) or f'Column {cell.column + 1}'}: ")
+
+
 def protected_context(prefix):
     pattern = (r"(?<!\d)(?:19|20)\d{2}(?!\d)|"
                r"(?i:(?<![a-zа-я])(?:RUB|USD|EUR|GBP|руб(?:лей|ля)?|млн|тыс|million|billion|kg|кг|%)(?![a-zа-я]))")
@@ -191,10 +215,11 @@ class TableProcessor:
     def process(self, block, context):
         cells, heads = canonical(block)
         expanded, fragments = grid(cells), []
+        by_id = {cell.id: cell for cell in cells}
         for cell in cells:
             if not cell.text.strip():
                 continue
-            full_context = "Table headers: " if cell.row < heads else context_for(cell, expanded, heads)
+            full_context = cell_context(block, cell, by_id, expanded, heads)
             fits = (lambda text: self.counter.full_count(ChunkContextBuilder.embedding_text(text, block.section_path, self.counter)) <= self.budget) if self.counter else lambda text: len(text) <= 300
             prefix = bounded_prefix(full_context, fits)
             truncated = prefix != full_context
@@ -208,7 +233,6 @@ class TableProcessor:
                               "header_context_truncated": truncated}))
         # Pack a row when it fits; long cells already have bounded, independently proven slices.
         packed, pending, pending_row = [], [], None
-        by_id = {cell.id: cell for cell in cells}
         def flush():
             if len(pending) == 1:
                 packed.append(pending[0])
@@ -253,7 +277,7 @@ def validate_table_chunks(document, chunks, counter, budget):
                 start, end = meta.get("value_start"), meta.get("value_end")
                 if type(start) is not int or type(end) is not int or not 0 <= start < end <= len(cell.text):
                     raise ValueError("Invalid table cell span")
-                expected = "Table headers: " if cell.row < heads else context_for(cell, expanded, heads)
+                expected = cell_context(block, cell, by_id, expanded, heads)
                 prefix = meta.get("prefix")
                 if not isinstance(prefix, str):
                     raise TypeError("Table fragment changes header")

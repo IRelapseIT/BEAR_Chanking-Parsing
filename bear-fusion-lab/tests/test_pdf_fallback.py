@@ -39,8 +39,10 @@ class Backend:
 
 
 def test_only_bad_page_replaced_whole_without_duplicates():
-    first, second = block(), block(2)
-    doc = ParsedDocument(CTX, [first, second], warnings=["pdf_unknown_glyph:page:2"])
+    ocr = {"status": "disagreement"}
+    layout = {"status": "detected"}
+    first, second = block(), block(2, ocr_verification=ocr, table_layout_candidates=layout)
+    doc = ParsedDocument(CTX, [first, second], warnings=["pdf_page_failed:2:Fixture"])
     backend = Backend([block(text="Original text 2025 repaired")])
     result = route_pages(doc, "unused", LIMITS, backend)
     assert backend.calls == [2]
@@ -48,13 +50,15 @@ def test_only_bad_page_replaced_whole_without_duplicates():
     assert [b.text for b in result.blocks] == [first.text, "Original text 2025 repaired"]
     assert [b.order for b in result.blocks] == [0, 1]
     assert result.blocks[1].metadata["pdf_route"]["selected_parser"] == "docling"
-    assert "pdf_unknown_glyph:page:2" in result.warnings
+    assert result.blocks[1].metadata["primary_ocr_verifications"] == [ocr]
+    assert result.blocks[1].metadata["primary_table_layout_candidates"] == [layout]
+    assert "pdf_page_failed:2:Fixture" in result.warnings
 
 
 @pytest.mark.parametrize("text", ["Other text 2025", "Original text 2024", "", "Original text \ufffd 2025"])
 def test_candidate_not_assumed_better(text):
     original = block()
-    doc = ParsedDocument(CTX, [original], warnings=["pdf_unknown_glyph:page:1"])
+    doc = ParsedDocument(CTX, [original], warnings=["pdf_page_failed:1:Fixture"])
     route_pages(doc, "unused", LIMITS, Backend([block(text=text)]))
     assert doc.blocks == [original]
     assert original.metadata["pdf_route"]["status"] == "needs_review"
@@ -64,7 +68,7 @@ def test_candidate_not_assumed_better(text):
                                          ("Rate 12%", "Rate 12")])
 def test_numeric_sign_separator_and_percent_preserved(before, after):
     original = block(text=before)
-    doc = ParsedDocument(CTX, [original], warnings=["pdf_unknown_glyph:page:1"])
+    doc = ParsedDocument(CTX, [original], warnings=["pdf_page_failed:1:Fixture"])
     route_pages(doc, "unused", LIMITS, Backend([block(text=after)]))
     assert doc.blocks[0] is original
     assert original.metadata["pdf_route"]["status"] == "needs_review"
@@ -82,7 +86,7 @@ def test_order_disagreement_stays_review_even_if_words_preserved():
                                    FileNotFoundError("python"), ValueError("cells")])
 def test_worker_failure_preserves_original(error):
     original = block()
-    doc = ParsedDocument(CTX, [original], warnings=["pdf_unknown_glyph:page:1"])
+    doc = ParsedDocument(CTX, [original], warnings=["pdf_page_failed:1:Fixture"])
     route_pages(doc, "unused", LIMITS, Backend(error=error))
     assert doc.blocks[0] is original
     assert original.metadata["pdf_route"]["fallback_status"] == "failed"
@@ -90,7 +94,7 @@ def test_worker_failure_preserves_original(error):
 
 def test_page_budget_disable_and_warning_page_boundary():
     backend = Backend([block()])
-    doc = ParsedDocument(CTX, [block(), block(10)], warnings=["pdf_unknown_glyph:page:10"])
+    doc = ParsedDocument(CTX, [block(), block(10)], warnings=["pdf_page_failed:10:Fixture"])
     route_pages(doc, "unused", LIMITS, backend)
     assert backend.calls == [10]
     doc = ParsedDocument(CTX, [block(), block(2)], warnings=["pdf_page_failed:1:X", "pdf_page_failed:2:X"])
@@ -109,12 +113,14 @@ def test_low_confidence_and_caption_signals():
     assert "caption_without_table" in page_reasons([block(text="Таблица 2")], [], 1, FallbackPolicy())
 
 
-def test_unknown_ocr_confidence_cannot_clear_low_confidence_source():
+def test_low_confidence_alone_does_not_call_docling():
     original = block(mean_word_confidence=20)
     doc = ParsedDocument(CTX, [original])
-    route_pages(doc, "unused", LIMITS, Backend([block()]))
+    backend = Backend([block()])
+    route_pages(doc, "unused", LIMITS, backend)
     assert doc.blocks[0] is original
-    assert "candidate_ocr_confidence_unknown" in original.metadata["pdf_route"]["candidate_reasons"]
+    assert backend.calls == []
+    assert original.metadata["pdf_route"]["status"] == "needs_review"
 
 
 def test_docling_low_confidence_and_missing_cells_rejected():
@@ -182,4 +188,5 @@ def test_generated_pdf_routes_only_caption_page(tmp_path):
     assert len([b for b in result.blocks if b.source.page == 1]) == 1
     assert len([b for b in result.blocks if b.source.page == 2]) == 2
     records = [json.loads(w.split(":", 1)[1]) for w in result.warnings if w.startswith("pdf_page_route:")]
-    assert [r["selected_parser"] for r in records] == ["bear", "docling"]
+    assert [r["selected_parser"] for r in records] == ["bear", "bear"]
+    assert records[1]["candidate_reasons"] == ["table_cells_or_headers_unconfirmed"]

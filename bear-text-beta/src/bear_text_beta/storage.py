@@ -372,3 +372,17 @@ class SQLiteManifest:
                 raise StorageError("Задание не найдено или ещё выполняется")
             db.execute("UPDATE processing_jobs SET status='pending',phase='queued',attempts=0,error=NULL WHERE id=?", (job_id,))
             db.execute("UPDATE generations SET attempts=0 WHERE id=? AND status!='ready'", (job_id,))
+
+    def reprocess_ingestion(self, job_id):
+        from .file_validation import StoredObject
+        from .models import DocumentContext, ProcessingProfile
+        with self.connection() as db:
+            row = db.execute("SELECT * FROM processing_jobs WHERE id=? AND auto_index=1", (job_id,)).fetchone()
+            if row is None or row["status"] == "running":
+                raise StorageError("Задание не найдено или ещё выполняется")
+            stored = StoredObject(**json.loads(row["object_json"]))
+            context = DocumentContext(**json.loads(row["context_json"]))
+            profile = ProcessingProfile(**json.loads(row["profile_json"]))
+        new_job = str(uuid4())
+        self.submit_ingestion(new_job, stored, context, profile)
+        return new_job

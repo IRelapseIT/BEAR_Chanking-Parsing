@@ -1,4 +1,5 @@
 .venv/
+.ocr-venv/
 .infinity-venv/
 .infinity_cache/
 .unlazy/

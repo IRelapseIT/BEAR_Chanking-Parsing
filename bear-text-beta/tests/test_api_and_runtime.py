@@ -28,16 +28,15 @@ def test_api_process_and_validation(tmp_path, parser, chunker, counter, embeddin
         manifest.save(result)
         return result
     runtime = SimpleNamespace(upload_stream=upload_stream, process_stored=process_stored,
-                              parser=parser, manifest=manifest)
+                              parser=parser, manifest=manifest, profile=profile, object_storage=storage)
     with TestClient(create_app(runtime)) as client:
-        response = client.post("/beta/process", files={"file": ("document.txt", "Текст.".encode())},
+        response = client.post("/v1/documents", files={"file": ("document.txt", "Текст.".encode())},
                                data={"context": json.dumps(asdict(context))})
-        assert response.status_code == 200
+        assert response.status_code == 202
         body = response.json()
-        assert body["schema_version"] == 1
-        assert body["chunks"][0]["text"] == "Текст."
-        assert manifest.load(body["generation_id"]).chunks[0].text == "Текст."
-        malformed = client.post("/beta/process", files={"file": ("bad.txt", b"data")},
+        assert client.get("/v1/jobs/" + body["job_id"]).json()["status"] == "queued"
+        assert manifest.claim_next_processing()["stored"]["size_bytes"] == len("Текст.".encode())
+        malformed = client.post("/v1/documents", files={"file": ("bad.txt", b"data")},
                                 data={"context": "not JSON"})
         assert malformed.status_code == 422
 
@@ -88,19 +87,17 @@ def test_api_index_search_health_and_errors(parsed, chunker, embeddings):
         def search(self, query, tenant, space, top_k):
             if query == "failure":
                 raise EmbeddingError("unavailable")
-            return [SearchHit("point", 0.9, {"text": "Ответ из payload.", "source_spans": []})]
+            return [SearchHit("point", 0.9, {"text": "Ответ из payload.", "sources": [], "document_id": "d", "document_version": 1, "generation_id": "g"})]
     runtime = SimpleNamespace(indexer=Indexer(), embeddings=embeddings,
                               vectors=SimpleNamespace(health=lambda: {"ready": True}))
     with TestClient(create_app(runtime)) as client:
-        assert client.post("/beta/index", json={"result": asdict(result)}).json() == {"status": "indexed"}
-        assert calls[0].chunks[0].text == "Ответ из payload."
-        assert client.post("/beta/index", json={"generation_id": result.generation_id}).status_code == 200
-        assert client.post("/beta/index", json={}).status_code == 422
-        assert client.post("/beta/index", json={"result": {"invalid": True}}).status_code == 422
+        assert client.post("/beta/index", json={"result": asdict(result)}).status_code == 410
+        assert calls == []
+        assert client.post("/beta/index", json={"generation_id": result.generation_id}).status_code == 410
         query = {"query": "вопрос", "tenant_id": "tenant-a", "space_id": "space-a"}
-        assert client.post("/beta/search", json=query).json()["results"][0]["text"] == "Ответ из payload."
+        assert client.post("/v1/search", json=query).json()["results"][0]["text"] == "Ответ из payload."
         query["query"] = "failure"
-        assert client.post("/beta/search", json=query).status_code == 503
+        assert client.post("/v1/search", json=query).status_code == 503
         assert client.get("/health").json()["qdrant"]["ready"]
 
 
