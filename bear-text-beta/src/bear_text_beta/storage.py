@@ -320,6 +320,47 @@ class SQLiteManifest:
                     state["phase"] = "deleted"
         return state
 
+    def index_status(self, job_id):
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT g.status,g.error,g.attempts,d.active_generation,d.desired_generation,d.deleted "
+                "FROM generations g JOIN documents d ON g.tenant=d.tenant AND g.space=d.space "
+                "AND g.document=d.document WHERE g.id=?", (job_id,)).fetchone()
+        if row is None or row["deleted"]:
+            return {"status": "unavailable", "search_available": False}
+        return {"status": row["status"], "error": row["error"], "attempts": row["attempts"],
+                "active_generation": row["active_generation"], "desired_generation": row["desired_generation"],
+                "search_available": row["active_generation"] == job_id and row["status"] == "ready"}
+
+    def reassess_ingestion(self, job_id):
+        from .acceptance import POLICY, assess
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT g.*,p.phase,p.auto_index,d.deleted,d.desired_generation,d.desired_version "
+                "FROM generations g JOIN processing_jobs p ON p.id=g.id JOIN documents d "
+                "ON g.tenant=d.tenant AND g.space=d.space AND g.document=d.document WHERE g.id=?",
+                (job_id,)).fetchone()
+            if (row is None or not row["auto_index"] or row["deleted"]
+                    or row["desired_generation"] != job_id or row["version"] < row["desired_version"]):
+                raise StorageError("Приёмка доступна для текущего задания документа")
+            result = load_result(json.loads(row["result_json"]))
+            previous = result.metrics.get("acceptance", {})
+            if previous.get("policy") == POLICY and "previous_acceptance" in result.metrics:
+                return False
+            if row["phase"] != "needs_review":
+                raise StorageError("Задание не ожидает повторной приёмки")
+            decision = assess(result)
+            if not decision["accepted_for_indexing"]:
+                raise StorageError("Нет пригодного текста для индексации")
+            result.metrics.update(acceptance=decision, previous_acceptance=previous)
+            serialized = json.dumps(asdict(result), ensure_ascii=False, sort_keys=True, allow_nan=False)
+            digest = hashlib.sha256(serialized.encode()).hexdigest()
+            db.execute("UPDATE generations SET result_json=?,digest=?,attempts=0,error=NULL WHERE id=?",
+                       (serialized, digest, job_id))
+            db.execute("UPDATE processing_jobs SET status='pending',phase='queued',attempts=0,error=NULL "
+                       "WHERE id=?", (job_id,))
+            return True
+
     def submit_ingestion(self, job_id, stored, context, profile, queue_limit=128):
         from .errors import ServiceUnavailableError
         with self.connection() as db:

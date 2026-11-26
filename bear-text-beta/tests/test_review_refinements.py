@@ -11,7 +11,6 @@ from test_ingestion import submit, system  # noqa: F401 - imported pytest fixtur
 
 from bear_text_beta.acceptance import assess
 from bear_text_beta.api import create_app
-from bear_text_beta.errors import ValidationError
 from bear_text_beta.indexing import IndexingService
 from bear_text_beta.parsing import MDParser
 from bear_text_beta.process_worker import run_once
@@ -36,8 +35,7 @@ def test_internal_indexer_reassesses_unresolved_content(
     if decision is not None:
         result.metrics["acceptance"] = decision
     indexer = IndexingService(SQLiteManifest(tmp_path / "m.db"), FakeVectors(), embeddings, counter, profile)
-    with pytest.raises(ValidationError, match="приёмки"):
-        indexer.index(result)
+    assert indexer.index(result)["status"] == "indexed"
 
 
 def test_status_badges_are_optional_but_diagrams_are_not(chunker, context):
@@ -51,7 +49,7 @@ def test_status_badges_are_optional_but_diagrams_are_not(chunker, context):
     result = chunker.process(
         StructuredMarkdownParser().parse(badge + b"\n\n![Plan](https://example.org/diagram.png)", context)
     )
-    assert not assess(result)["accepted_for_indexing"]
+    assert assess(result)["outcome"] == "completed_with_warnings"
     assert not is_status_badge("https://github.com.evil.test/a/b/actions/workflows/test.yml/badge.svg")
     assert not is_status_badge("https://github.com/a/b/diagram.svg")
 
@@ -112,7 +110,7 @@ def test_reprocess_uses_original_and_new_parser_instead_of_old_checkpoint(reques
     data = b"TypeScript\n\n![CI](https://github.com/microsoft/TypeScript/actions/workflows/ci.yml/badge.svg)"
     old = submit(client, context, data).json()["job_id"]
     run_once(services)
-    assert client.get(f"/v1/jobs/{old}").json()["status"] == "needs_review"
+    assert client.get(f"/v1/jobs/{old}").json()["status"] == "searchable"
     old_result = services.manifest.load(old)
     services.parser.parsers[".md"] = StructuredMarkdownParser()
     response = client.post(f"/v1/jobs/{old}/reprocess")

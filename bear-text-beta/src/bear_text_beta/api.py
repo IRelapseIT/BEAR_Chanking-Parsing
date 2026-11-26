@@ -85,11 +85,19 @@ def create_app(services=None):
         state = runtime.manifest.processing_status(str(job_id))
         if state is None:
             return JSONResponse(status_code=404, content={"error": "JobNotFound"})
+        index = runtime.manifest.index_status(str(job_id))
+        state["index"] = index
+        state["search_available"] = index["search_available"]
+        state["outcome"] = "failed" if state["status"] == "failed" else None
         state["worker_status"] = state["status"]
         state["status"] = ("failed" if state["status"] == "failed" else state["phase"])
         try:
             result = runtime.manifest.load(str(job_id))
             state["acceptance"] = result.metrics.get("acceptance")
+            acceptance = state["acceptance"] or {}
+            state["outcome"] = acceptance.get("outcome", state["outcome"])
+            state["completeness"] = result.completeness
+            state["quality_warnings"] = acceptance.get("warnings", [])
             state["chunks"] = len(result.chunks)
             state["warnings"] = result.warnings
         except StorageError:
@@ -105,6 +113,11 @@ def create_app(services=None):
     def retry_ingestion(job_id: UUID):
         get_services().manifest.retry_ingestion(str(job_id))
         return {"job_id": str(job_id), "status": "queued"}
+
+    @app.post("/v1/jobs/{job_id}/reassess", status_code=202)
+    def reassess_ingestion(job_id: UUID):
+        queued = get_services().manifest.reassess_ingestion(str(job_id))
+        return {"job_id": str(job_id), "status": "queued" if queued else "already_submitted"}
 
     @app.post("/v1/jobs/{job_id}/reprocess", status_code=202)
     def reprocess_ingestion(job_id: UUID):

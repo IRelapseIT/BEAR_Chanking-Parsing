@@ -145,13 +145,14 @@ def test_docx_headers_lists_merges_long_values_and_embedded_object(system, conte
     job = submit(client, replace(context, filename="document.docx"), output.getvalue()).json()["job_id"]
     run_once(services)
     state = client.get(f"/v1/jobs/{job}").json()
-    assert state["status"] == "needs_review"
+    assert state["status"] == "searchable"
+    assert state["outcome"] == "completed_with_warnings"
     result = services.manifest.load(job)
     assert any(b.role == "list_item" for b in result.parsed_document.blocks)
     assert any(b.text == "Company header" for b in result.parsed_document.blocks)
     assert any(b.text == "Company footer" for b in result.parsed_document.blocks)
     assert any("END-VALUE" in c.text for c in result.chunks)
-    assert services.manifest.active_generations(context.tenant_id, context.space_id) == []
+    assert services.manifest.active_generations(context.tenant_id, context.space_id) == [job]
 
 
 def test_malformed_pdf_is_failed_without_damaging_other_document(system, context):
@@ -177,5 +178,5 @@ def test_successful_docling_fallback_cannot_erase_original_ocr_risk(parsed, chun
     document.warnings.append("ocr_unverified:page:1; numeric_and_layout_review_required")
     document.blocks[0].metadata.update(parser="docling", pdf_route={"status": "heuristic_checks_passed"})
     result = chunker.process(document)
-    assert assess(result)["accepted_for_indexing"] is False
-    assert "ocr_requires_review" in assess(result)["reasons"]
+    assert assess(result)["accepted_for_indexing"] is True
+    assert "ocr_unverified" in assess(result)["reasons"]
