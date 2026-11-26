@@ -5,15 +5,19 @@ import httpx
 
 from .chunking import ChunkValidator
 from .embeddings import CharacterTokenCounter, validate_vectors
-from .errors import StorageError, ValidationError
+from .errors import EmbeddingError, StorageError, ValidationError
 from .models import EmbeddedChunk, ProcessingProfile, SearchHit
+from .retrieval import RetrievalService, SparseProvider
 
 
 class QdrantVectorStore:
-    def __init__(self, base_url, collection, dimension=384, *, client=None, api_key=None):
+    def __init__(self, base_url, collection, dimension=384, *, client=None, api_key=None,
+                 sparse_provider: SparseProvider | None = None):
         self.collection = quote(collection, safe="")
         self.dimension = dimension
+        self.sparse_provider = sparse_provider
         self._collection_ready = False
+        self._sparse_ready = False
         self.client = client or httpx.Client(base_url=base_url.rstrip("/") + "/", timeout=30,
                                             headers={"api-key": api_key} if api_key else {})
 
@@ -49,9 +53,45 @@ class QdrantVectorStore:
             raise StorageError("Не удалось проверить конфигурацию Qdrant") from exc
         self._collection_ready = True
 
+    def ensure_sparse(self):
+        if self._sparse_ready:
+            return
+        name = self.sparse_provider.vector_name
+        path = f"collections/{self.collection}"
+        self.ensure_collection()
+
+        def schema():
+            try:
+                params = self.request("GET", path)["result"]["config"]["params"]
+                return (params.get("sparse_vectors") or {}).get(name)
+            except (AttributeError, KeyError, TypeError) as exc:
+                raise StorageError("Не удалось прочитать схему sparse-вектора Qdrant") from exc
+
+        existing = schema()
+        try:
+            if existing is None:
+                self.request("PUT", f"{path}/vectors/{quote(name, safe='')}",
+                             json={"sparse": {"modifier": "idf"}})
+        except StorageError:
+            # Another worker may have added the same name between GET and PUT.
+            existing = schema()
+            if existing is None:
+                raise
+        if existing is not None and (not isinstance(existing, dict) or
+                                      str(existing.get("modifier")).lower() != "idf"):
+            raise StorageError("Несовместимая схема sparse-вектора Qdrant")
+        self._sparse_ready = True
+
     def upsert(self, chunks, result):
         sources = {block.id: block.source for block in result.parsed_document.blocks}
         self.ensure_collection()
+        use_sparse = self.sparse_provider is not None
+        sparse_unavailable = False
+        if use_sparse:
+            try:
+                self.ensure_sparse()
+            except StorageError:
+                use_sparse, sparse_unavailable = False, True
         context = result.context
         for index in range(0, len(chunks), 64):
             points = []
@@ -68,8 +108,23 @@ class QdrantVectorStore:
                                embedding_profile_id=embedded.embedding_profile_id,
                                completeness=result.completeness)
                 points.append({"id": embedded.chunk.id, "vector": embedded.vector, "payload": payload})
-            self.request("PUT", f"collections/{self.collection}/points", params={"wait": "true"},
-                         json={"points": points})
+            path = f"collections/{self.collection}/points"
+            if use_sparse:
+                try:
+                    hybrid = []
+                    for point in points:
+                        sparse = self.sparse_provider.encode(point["payload"]["embedding_text"])
+                        hybrid.append({**point, "vector": {"": point["vector"], self.sparse_provider.vector_name: sparse}}
+                                      if sparse is not None else point)
+                    self.request("PUT", path, params={"wait": "true"}, json={"points": hybrid})
+                    continue
+                except (EmbeddingError, StorageError):
+                    use_sparse, sparse_unavailable = False, True
+                    self._sparse_ready = False
+            self.request("PUT", path, params={"wait": "true"}, json={"points": points})
+        if sparse_unavailable:
+            return "sparse_index_unavailable"
+        return None
 
     def verify_generation(self, generation_id, point_ids):
         for index in range(0, len(point_ids), 128):
@@ -88,11 +143,36 @@ class QdrantVectorStore:
                      json={"filter": {"must": [{"key": "generation_id", "match": {"value": generation_id}}]}})
 
     def search(self, vector, filters, top_k):
+        return self._query(vector, filters, top_k)
+
+    def _query(self, vector, filters, top_k, using=None):
+        options = {"using": using} if using is not None else {}
         body = self.request("POST", f"collections/{self.collection}/points/query",
                             json={"query": vector, "filter": filters, "limit": top_k,
-                                  "with_payload": True, "with_vector": False})
-        return [SearchHit(str(point["id"]), point["score"], point["payload"])
-                for point in body["result"]["points"]]
+                                  "with_payload": True, "with_vector": False, **options})
+        try:
+            return [SearchHit(str(point["id"]), point["score"], point["payload"])
+                    for point in body["result"]["points"] if isinstance(point.get("payload"), dict)]
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise StorageError("Некорректная поисковая выдача Qdrant") from exc
+
+    def search_sparse(self, query, filters, top_k):
+        vector = self.sparse_provider.encode(query)
+        if vector is None:
+            return [], None
+        self.ensure_sparse()
+        name = self.sparse_provider.vector_name
+        hits = self._query(vector, filters, top_k, using=name)
+        indexed_filter = {**filters, "must": [*filters["must"], {"has_vector": name}]}
+        count_path = f"collections/{self.collection}/points/count"
+        try:
+            counts = [self.request("POST", count_path, json={"exact": True, "filter": condition})["result"]["count"]
+                      for condition in (indexed_filter, filters)]
+        except (KeyError, TypeError) as exc:
+            raise StorageError("Некорректный подсчёт точек Qdrant") from exc
+        if any(type(count) is not int or count < 0 for count in counts):
+            raise StorageError("Некорректный подсчёт точек Qdrant")
+        return hits, {"indexed_points": counts[0], "total_points": counts[1]}
 
     def health(self):
         try:
@@ -102,13 +182,15 @@ class QdrantVectorStore:
 
 
 class IndexingService:
-    def __init__(self, manifest, vectors, embeddings, counter, embedding_profile, external_validators=None):
+    def __init__(self, manifest, vectors, embeddings, counter, embedding_profile,
+                 external_validators=None, *, reranker=None):
         self.manifest = manifest
         self.vectors = vectors
         self.embeddings = embeddings
         self.counter = counter
         self.embedding_profile = embedding_profile
         self.external_validators = external_validators or {}
+        self.retrieval = RetrievalService(manifest, vectors, embeddings, counter, embedding_profile, reranker)
 
     def index(self, result, processing_claim=None):
         from .acceptance import assess
@@ -133,6 +215,7 @@ class IndexingService:
         if not self.manifest.begin_index(result.generation_id, processing_claim):
             return {"generation_id": result.generation_id, "status": "already_indexed",
                     "completeness": result.completeness}
+        retrieval_warnings = set()
         try:
             for start in range(0, len(result.chunks), 16):
                 batch = result.chunks[start:start + 16]
@@ -142,7 +225,9 @@ class IndexingService:
                     self.manifest.set_processing_phase(*processing_claim, "indexing")
                 embedded = [EmbeddedChunk(chunk, vector, self.embedding_profile.identifier())
                             for chunk, vector in zip(batch, vectors, strict=True)]
-                self.vectors.upsert(embedded, result)
+                sparse_warning = self.vectors.upsert(embedded, result)
+                if sparse_warning == "sparse_index_unavailable":
+                    retrieval_warnings.add(sparse_warning)
                 if processing_claim:
                     self.manifest.set_processing_phase(*processing_claim, "embedding")
             if not self.vectors.verify_generation(result.generation_id, [chunk.id for chunk in result.chunks]):
@@ -158,28 +243,16 @@ class IndexingService:
             except StorageError:
                 cleanup_warning = "old_generation_cleanup_pending"
         return {"generation_id": result.generation_id, "status": "indexed", "chunks": len(result.chunks),
-                "completeness": result.completeness, "cleanup_warning": cleanup_warning}
+                "completeness": result.completeness, "cleanup_warning": cleanup_warning,
+                "retrieval_warnings": sorted(retrieval_warnings)}
 
     def retry(self, generation_id):
         return self.index(self.manifest.load(generation_id))
 
     def search(self, query, tenant_id, space_id, top_k=5):
-        if not query.strip() or not tenant_id or not space_id or not 1 <= top_k <= 100:
-            raise ValidationError("Некорректный поисковый запрос")
-        generations = self.manifest.active_generations(tenant_id, space_id)
-        if not generations:
-            return []
-        vector = self.embeddings.embed_batch([query], "query")
-        validate_vectors(vector, 1, self.embedding_profile.vector_dimension)
-        filters = {"must": [
-            {"key": "tenant_id", "match": {"value": tenant_id}},
-            {"key": "space_id", "match": {"value": space_id}},
-            {"key": "generation_id", "match": {"any": generations}},
-            {"key": "embedding_profile_id", "match": {"value": self.embedding_profile.identifier()}},
-        ]}
-        hits = self.vectors.search(vector[0], filters, top_k)
-        # Recheck activation after retrieval so concurrent deletion/reindexing cannot expose stale results.
-        current = set(self.manifest.active_generations(tenant_id, space_id))
-        return [hit for hit in hits if hit.payload.get("tenant_id") == tenant_id
-                and hit.payload.get("space_id") == space_id and hit.payload.get("generation_id") in current
-                and hit.payload.get("embedding_profile_id") == self.embedding_profile.identifier()]
+        result = self.search_detailed(query, tenant_id, space_id, top_k, mode="dense",
+                                      prefetch=top_k, include_parents=False)
+        return [SearchHit(**hit) for hit in result["hits"]]
+
+    def search_detailed(self, query, tenant_id, space_id, top_k=5, **options):
+        return self.retrieval.search(query, tenant_id, space_id, top_k, **options)

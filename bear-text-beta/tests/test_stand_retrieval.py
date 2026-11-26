@@ -1,4 +1,6 @@
 import json
+import os
+from uuid import uuid4
 
 import httpx
 import pytest
@@ -246,3 +248,71 @@ def test_qdrant_old_collection_gains_optional_sparse_vectors(parsed, chunker, pr
     assert "lexical_v1" in points[result.chunks[0].id]["vector"]
     assert store.search_sparse("чай", {"must": []}, 5) == ([], {"indexed_points": 1, "total_points": 2})
     assert sum(path.endswith("/vectors/lexical_v1") for _, path, _ in requests) == 1
+
+
+def test_sparse_write_failure_retries_dense_points(parsed, chunker, profile):
+    from bear_text_beta.retrieval import LexicalSparseProvider
+
+    writes = []
+
+    def handler(request):
+        data = json.loads(request.content) if request.content else {}
+        if request.method == "GET":
+            return httpx.Response(200, json={"result": {"config": {"params": {
+                "vectors": {"size": 4, "distance": "Cosine"},
+                "sparse_vectors": {"lexical_v1": {"modifier": "idf"}},
+            }}}})
+        writes.append(data["points"][0]["vector"])
+        return httpx.Response(400 if isinstance(writes[-1], dict) else 200, json={"result": {}})
+
+    store = QdrantVectorStore("", "beta", 4, sparse_provider=LexicalSparseProvider(), client=httpx.Client(
+        base_url="http://qdrant/", transport=httpx.MockTransport(handler)))
+    result = chunker.process(parsed("Текст."))
+    embedded = EmbeddedChunk(result.chunks[0], [1.0, 0, 0, 0], profile.identifier())
+    assert store.upsert([embedded], result) == "sparse_index_unavailable"
+    assert writes[0][""] == writes[1] == embedded.vector
+    assert store.search_sparse("?!", {"must": []}, 5) == ([], None)
+
+
+@pytest.mark.skipif(not all(os.getenv(key) for key in (
+    "BEAR_QDRANT_TEST_URL", "BEAR_INFINITY_TEST_URL", "BEAR_TEST_MODEL_DIR",
+)), reason="requires a live local Qdrant, Infinity and BGE-M3 model")
+def test_live_bge_m3_dense_sparse_hybrid(tmp_path, monkeypatch):
+    from bear_text_beta.models import DocumentContext, ProcessingProfile
+    from bear_text_beta.runtime import Services
+
+    collection = f"bear_live_retrieval_{uuid4().hex}"
+    endpoint = os.environ["BEAR_QDRANT_TEST_URL"]
+    monkeypatch.setenv("BEAR_QDRANT_URL", endpoint)
+    monkeypatch.setenv("BEAR_QDRANT_COLLECTION", collection)
+    monkeypatch.setenv("BEAR_INFINITY_URL", os.environ["BEAR_INFINITY_TEST_URL"])
+    monkeypatch.setenv("BEAR_INFINITY_MODEL", "BAAI/bge-m3")
+    monkeypatch.setenv("BEAR_SPARSE_PROVIDER", "lexical")
+    with httpx.Client(base_url=endpoint, timeout=30, trust_env=False) as client:
+        services = Services(tmp_path, os.environ["BEAR_TEST_MODEL_DIR"])
+        try:
+            ctx = DocumentContext("t", "s", "arctic", 1, "notes.txt")
+            text = "Арктический договор определяет судоходство в северных водах."
+            result = services.process(text.encode(), ctx, ProcessingProfile())
+            assert services.profile.model_id == "BAAI/bge-m3"
+            assert services.indexer.index(result)["status"] == "indexed"
+            query = "Арктический договор"
+            modes = {}
+            for mode in ("dense", "sparse", "hybrid"):
+                response = services.indexer.search_detailed(query, "t", "s", document_ids=["arctic"], mode=mode)
+                assert response["hits"][0]["payload"]["text"] == text
+                assert response["trace"]["parents"][0]["text"] == text
+                modes[mode] = response["trace"]["timings_ms"]
+                if mode != "dense":
+                    assert response["trace"]["sparse_coverage"] == {"indexed_points": 1, "total_points": 1}
+                if mode == "hybrid":
+                    assert response["trace"]["fusion"][0]["dense_rank"] == 1
+                    assert response["trace"]["fusion"][0]["sparse_rank"] == 1
+            assert not services.indexer.search_detailed(query, "other-tenant", "s")["hits"]
+            assert not services.indexer.search_detailed(query, "t", "s", document_ids=["other-doc"])["hits"]
+            print(json.dumps({"embedding": services.profile.model_id, "dimension": services.profile.vector_dimension,
+                              "modes_ms": modes}, ensure_ascii=False))
+        finally:
+            services.close()
+            deleted = client.delete(f"/collections/{collection}")
+            assert deleted.status_code in {200, 404}

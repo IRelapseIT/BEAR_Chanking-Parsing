@@ -21,6 +21,7 @@ from .models import DocumentContext, EmbeddingProfile, ProcessingProfile, Proces
 from .object_storage import LocalObjectStorage
 from .parsing import ParsingPipeline
 from .remote_chunking import RemoteChunkingService
+from .retrieval import configured_reranker, configured_sparse_provider
 from .storage import SQLiteManifest
 
 
@@ -77,9 +78,10 @@ class Services:
                                             else ("bear_bge_m3_" if self.profile.model_id == "BAAI/bge-m3" else "bear_text_")
                                             + self.profile.identifier())),
                                         self.profile.vector_dimension,
-                                        api_key=os.getenv("BEAR_QDRANT_API_KEY"))
+                                        api_key=os.getenv("BEAR_QDRANT_API_KEY"),
+                                        sparse_provider=configured_sparse_provider())
         self.indexer = IndexingService(self.manifest, self.vectors, self.embeddings, self.counter,
-                                      self.profile, external_validators=validators)
+                                      self.profile, external_validators=validators, reranker=configured_reranker())
 
     def process(self, data: bytes, context: DocumentContext,
                 profile: ProcessingProfile) -> ProcessingResult:
