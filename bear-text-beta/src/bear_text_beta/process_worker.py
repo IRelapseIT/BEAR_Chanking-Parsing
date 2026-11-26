@@ -36,9 +36,10 @@ def run_once(services, *, lease_seconds=600, heartbeat_interval=None) -> bool:
     try:
         if job.get("auto_index"):
             services.manifest.set_processing_phase(job["id"], token, "parsing")
+        source = {"parse_from": job["parse_from"]} if job.get("parse_from") else {}
         result = services.process_stored(StoredObject(**job["stored"]), DocumentContext(**job["context"]),
                                 ProcessingProfile(**job["profile"]), job["id"],
-                                processing_claim=(job["id"], token))
+                                processing_claim=(job["id"], token), **source)
         if job.get("auto_index"):
             acceptance = result.metrics["acceptance"]
             if acceptance["accepted_for_indexing"]:

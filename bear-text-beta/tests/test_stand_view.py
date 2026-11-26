@@ -16,7 +16,7 @@ def test_table_processor_error_preserves_actual_text(parsed, chunker):
     chunker.external_processors["TABLE"] = Broken()
     result = chunker.process(document, ProcessingProfile())
     fallback = [chunk for chunk in result.chunks if chunk.strategy == "external_fallback"]
-    assert "".join(chunk.text for chunk in fallback) == original.text
+    assert "".join(chunk.text for chunk in fallback) == original.metadata["raw_source"]
     assert fallback[0].source_spans[0].block_id == original.id
     assert fallback[0].metadata["cell_relationships"] == "unverified"
 

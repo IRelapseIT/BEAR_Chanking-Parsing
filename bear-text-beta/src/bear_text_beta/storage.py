@@ -35,6 +35,9 @@ class SQLiteManifest:
                 CREATE TABLE IF NOT EXISTS outbox (
                     job_id TEXT PRIMARY KEY, published INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS parsed_checkpoints (
+                    id TEXT PRIMARY KEY, document_json TEXT NOT NULL, parsing_seconds REAL NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS processing_jobs (
                     id TEXT PRIMARY KEY, object_json TEXT NOT NULL, context_json TEXT NOT NULL,
                     profile_json TEXT NOT NULL, status TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0,
@@ -57,7 +60,8 @@ class SQLiteManifest:
             for name, sql_type in (("claim_token", "TEXT"), ("owner_id", "TEXT"),
                                    ("lease_until", "REAL"), ("completed_at", "REAL"),
                                    ("auto_index", "INTEGER NOT NULL DEFAULT 0"),
-                                   ("phase", "TEXT NOT NULL DEFAULT 'queued'")):
+                                   ("phase", "TEXT NOT NULL DEFAULT 'queued'"),
+                                   ("parse_from", "TEXT")):
                 if name not in columns:
                     db.execute(f"ALTER TABLE processing_jobs ADD COLUMN {name} {sql_type}")
             if legacy_jobs:
@@ -252,7 +256,8 @@ class SQLiteManifest:
                     "context": json.loads(row["context_json"]),
                     "profile": json.loads(row["profile_json"]), "claim_token": token,
                     "owner_id": owner_id, "lease_until": now + lease_seconds,
-                    "attempt": row["attempts"] + 1, "auto_index": bool(row["auto_index"])}
+                    "attempt": row["attempts"] + 1, "auto_index": bool(row["auto_index"]),
+                    "parse_from": row["parse_from"]}
 
     @staticmethod
     def _require_processing_claim(db, job_id, claim_token):
@@ -320,6 +325,51 @@ class SQLiteManifest:
                     state["phase"] = "deleted"
         return state
 
+    def job_record(self, job_id, tenant_id, space_id):
+        with self.connection() as db:
+            row = db.execute(
+                "SELECT p.* FROM processing_jobs p JOIN documents d ON "
+                "d.tenant=json_extract(p.context_json,'$.tenant_id') AND "
+                "d.space=json_extract(p.context_json,'$.space_id') AND "
+                "d.document=json_extract(p.context_json,'$.document_id') "
+                "WHERE p.id=? AND d.tenant=? AND d.space=? AND d.deleted=0",
+                (job_id, tenant_id, space_id)).fetchone()
+        return self._job_summary(row) if row else None
+
+    def list_jobs(self, tenant_id, space_id, limit=50, offset=0):
+        with self.connection() as db:
+            rows = db.execute(
+                "SELECT p.* FROM processing_jobs p JOIN documents d ON "
+                "d.tenant=json_extract(p.context_json,'$.tenant_id') AND "
+                "d.space=json_extract(p.context_json,'$.space_id') AND "
+                "d.document=json_extract(p.context_json,'$.document_id') "
+                "WHERE d.tenant=? AND d.space=? AND d.deleted=0 ORDER BY p.rowid DESC LIMIT ? OFFSET ?",
+                (tenant_id, space_id, limit, offset)).fetchall()
+        return [self._job_summary(row) for row in rows]
+
+    @staticmethod
+    def _job_summary(row):
+        return {"id": row["id"], "status": row["status"], "phase": row["phase"],
+                "error": row["error"], "context": json.loads(row["context_json"]),
+                "profile": json.loads(row["profile_json"]), "stored": json.loads(row["object_json"]),
+                "parse_from": row["parse_from"]}
+
+    def save_parsed(self, job_id, token, document, seconds):
+        with self.connection() as db:
+            self._require_processing_claim(db, job_id, token)
+            db.execute("INSERT OR IGNORE INTO parsed_checkpoints VALUES (?,?,?)",
+                       (job_id, json.dumps(asdict(document), ensure_ascii=False, allow_nan=False), seconds))
+
+    def load_parsed(self, job_id):
+        from pydantic import TypeAdapter
+
+        from .models import ParsedDocument
+        with self.connection() as db:
+            row = db.execute("SELECT * FROM parsed_checkpoints WHERE id=?", (job_id,)).fetchone()
+        if row is not None:
+            return TypeAdapter(ParsedDocument).validate_json(row["document_json"]), row["parsing_seconds"]
+        return self.load(job_id).parsed_document, None
+
     def index_status(self, job_id):
         with self.connection() as db:
             row = db.execute(
@@ -361,7 +411,7 @@ class SQLiteManifest:
                        "WHERE id=?", (job_id,))
             return True
 
-    def submit_ingestion(self, job_id, stored, context, profile, queue_limit=128):
+    def submit_ingestion(self, job_id, stored, context, profile, queue_limit=128, *, parse_from=None):
         from .errors import ServiceUnavailableError
         with self.connection() as db:
             old = db.execute("SELECT id,object_json FROM processing_jobs WHERE id=?", (job_id,)).fetchone()
@@ -381,9 +431,9 @@ class SQLiteManifest:
             if version and version["checksum"] != stored.checksum:
                 raise StorageError("Версия документа уже имеет другое содержимое")
             db.execute("INSERT OR IGNORE INTO versions VALUES (?,?,?,?,?)", version_key + (stored.checksum,))
-            db.execute("INSERT INTO processing_jobs(id,object_json,context_json,profile_json,status,auto_index) "
-                       "VALUES (?,?,?,?, 'pending',1)", (job_id, json.dumps(asdict(stored)),
-                                                         json.dumps(asdict(context)), json.dumps(asdict(profile))))
+            db.execute("INSERT INTO processing_jobs(id,object_json,context_json,profile_json,status,auto_index,parse_from) "
+                       "VALUES (?,?,?,?, 'pending',1,?)", (job_id, json.dumps(asdict(stored)),
+                           json.dumps(asdict(context)), json.dumps(asdict(profile)), parse_from))
             db.execute("UPDATE documents SET desired_version=?,desired_generation=? WHERE tenant=? AND space=? AND document=?",
                        (context.document_version, job_id) + key)
             return True

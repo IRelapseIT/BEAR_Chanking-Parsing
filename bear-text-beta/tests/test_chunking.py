@@ -80,9 +80,11 @@ def test_sources_for_repeated_paragraphs(parsed, chunker, counter):
 def test_block_boundaries_stop_at_table(parsed, chunker):
     document = parsed("Перед.\n\n| A |\n| --- |\n| 1 |\n\nПосле.", "document.md")
     result = chunker.process(document)
-    assert result.completeness == "partial"
-    assert len(result.deferred_blocks) == 1
-    assert [chunk.text for chunk in result.chunks] == ["Перед.", "После."]
+    assert result.completeness == "complete"
+    assert not result.deferred_blocks
+    assert result.chunks[0].text == "Перед."
+    assert result.chunks[1].strategy == "external_fallback"
+    assert result.chunks[-1].text == "После."
 
 
 def test_external_processor_contract(parsed, counter, embeddings, profile):

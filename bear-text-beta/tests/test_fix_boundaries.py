@@ -82,8 +82,9 @@ def test_external_processor_needs_independent_registered_validation(parsed, coun
         process = VerifiedTable.process
 
     document = parsed("| A |\n| --- |\n| 1 |\n", "table.md")
-    with pytest.raises(ValidationError, match="валидатор"):
-        ChunkingService(counter, embeddings, profile, {"TABLE": UncheckedTable()}).process(document)
+    fallback = ChunkingService(counter, embeddings, profile, {"TABLE": UncheckedTable()}).process(document)
+    assert fallback.chunks[0].strategy == "external_fallback"
+    assert fallback.chunks[0].text == document.blocks[0].metadata["raw_source"]
     processor = VerifiedTable()
     service = ChunkingService(counter, embeddings, profile, {"TABLE": processor})
     result = service.process(document)
@@ -102,9 +103,10 @@ def test_external_value_error_is_a_typed_validation_failure(parsed, counter, emb
         def validate(self, document, chunks, counter, maximum):
             raise ValueError("invalid canonical cells")
 
-    with pytest.raises(ValidationError, match="Внешнее содержимое"):
-        ChunkingService(counter, embeddings, profile, {"TABLE": InvalidTable()}).process(
-            parsed("| A |\n| --- |\n| 1 |\n", "table.md"))
+    result = ChunkingService(counter, embeddings, profile, {"TABLE": InvalidTable()}).process(
+        parsed("| A |\n| --- |\n| 1 |\n", "table.md"))
+    assert result.chunks[0].strategy == "external_fallback"
+    assert result.chunks[0].fallback_reason == "external_processor_failed:ValueError"
 
 
 def remote_client(counter, embeddings, profile, mutate=None, **options):

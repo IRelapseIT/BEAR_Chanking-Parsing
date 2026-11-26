@@ -57,10 +57,10 @@ def create_app(services=None):
             try:
                 ctx = TypeAdapter(DocumentContext).validate_python(json.loads(context))
             except (ValueError, TypeError) as exc:
-                raise ValidationError("Некорректный DocumentContext") from exc
+                raise ValidationError("РќРµРєРѕСЂСЂРµРєС‚РЅС‹Р№ DocumentContext") from exc
             if ctx.document_version < 1 or any(not value.strip() for value in (
                     ctx.tenant_id, ctx.space_id, ctx.document_id, ctx.filename)) or file.filename != ctx.filename:
-                raise ValidationError("Недопустимый контекст или имя файла")
+                raise ValidationError("РќРµРґРѕРїСѓСЃС‚РёРјС‹Р№ РєРѕРЅС‚РµРєСЃС‚ РёР»Рё РёРјСЏ С„Р°Р№Р»Р°")
             with lock:
                 runtime = get_services()
             stored = runtime.upload_stream(file.file, ctx)
@@ -178,6 +178,9 @@ def create_app(services=None):
         return JSONResponse(status_code=200 if available else 503,
                             content={**state, "ready": available, "capability": capability})
 
+    from .stand import stand_router
+
+    app.include_router(stand_router(get_services))
     return app
 
 

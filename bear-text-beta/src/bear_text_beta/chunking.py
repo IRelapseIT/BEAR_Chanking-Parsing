@@ -2,7 +2,7 @@ import hashlib
 import importlib.metadata
 import json
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from typing import Callable, Iterator
 from uuid import UUID, uuid4, uuid5
 
@@ -214,6 +214,21 @@ class ChunkContextBuilder:
         return heading + "\n\n" + text if heading else text
 
 
+def external_fallback_text(block):
+    if block.text.strip():
+        return block.text
+    raw = block.metadata.get("raw_source")
+    if block.type == "TABLE" and isinstance(raw, str):
+        if block.source.format == "html":
+            from bs4 import BeautifulSoup
+            return "\n".join(
+                " | ".join(cell.get_text(" ", strip=True) for cell in row.find_all(["td", "th"], recursive=False))
+                for row in BeautifulSoup(raw, "lxml").find_all("tr")
+            )
+        return raw
+    return ""
+
+
 class ChunkValidator:
     def __init__(self, counter, maximum, external_validators=None):
         self.counter = counter
@@ -250,7 +265,7 @@ class ChunkValidator:
             source_types = {block.type for block in source_blocks}
             prepared_external = source_types != {"TEXT"}
             if prepared_external and ("TEXT" in source_types or len(source_types) != 1
-                                      or chunk.strategy != "external"):
+                                      or chunk.strategy not in {"external", "external_fallback"}):
                 raise ValidationError("Нельзя смешивать текстовые и внешние источники чанка")
             if any(chunk.section_path != block.section_path for block in source_blocks):
                 raise ValidationError("Раздел чанка не соответствует источнику")
@@ -265,18 +280,19 @@ class ChunkValidator:
                     external_covered.add(block.id)
                     external_types.add(block.type)
                     continue
-                if not 0 <= span.start_char < span.end_char <= len(block.text):
+                original = external_fallback_text(block) if chunk.strategy == "external_fallback" else block.text
+                if not 0 <= span.start_char < span.end_char <= len(original):
                     raise ValidationError("Некорректный SourceSpan")
                 if (block.order, span.start_char) < last_source:
                     raise ValidationError("Нарушен порядок источников")
                 last_source = (block.order, span.end_char)
-                source_text = block.text[span.start_char:span.end_char]
+                source_text = original[span.start_char:span.end_char]
                 found = chunk.text.find(source_text, text_cursor)
                 if found < 0 or chunk.text[text_cursor:found].strip():
                     raise ValidationError("Исходный текст не соответствует чанку")
                 text_cursor = found + len(source_text)
                 covered[block.id].append((span.start_char, span.end_char))
-            if not prepared_external and chunk.text[text_cursor:].strip():
+            if (not prepared_external or chunk.strategy == "external_fallback") and chunk.text[text_cursor:].strip():
                 raise ValidationError("Чанк содержит текст без источника")
             if chunk.embedding_text != ChunkContextBuilder.embedding_text(
                     chunk.text, chunk.section_path, self.counter):
@@ -289,13 +305,14 @@ class ChunkValidator:
         for block in blocks.values():
             if block.id in deferred:
                 continue
-            if block.type == "TEXT":
+            if block.type == "TEXT" or covered[block.id]:
+                length = len(block.text) if block.type == "TEXT" else len(external_fallback_text(block))
                 position = 0
                 for start, end in sorted(covered[block.id]):
                     if start != position:
                         raise ValidationError(f"Пропуск/дублирование текста блока {block.id}")
                     position = end
-                if position != len(block.text):
+                if position != length:
                     raise ValidationError(f"Неполное покрытие блока {block.id}")
             elif block.id not in external_covered:
                 raise ValidationError("Внешний блок не обработан и не помечен deferred")
@@ -308,7 +325,11 @@ class ChunkValidator:
             if not callable(validate):
                 raise ValidationError(f"Отсутствует валидатор внешнего содержимого: {block_type}")
             try:
-                validate(result.parsed_document, result.chunks, self.counter, self.maximum)
+                external_chunks = [chunk for chunk in result.chunks if chunk.strategy == "external"
+                                   and blocks[chunk.source_spans[0].block_id].type == block_type]
+                block_ids = {span.block_id for chunk in external_chunks for span in chunk.source_spans}
+                document = replace(result.parsed_document, blocks=[b for b in blocks.values() if b.id in block_ids])
+                validate(document, external_chunks, self.counter, self.maximum)
             except (ValueError, TypeError, KeyError) as exc:
                 raise ValidationError(f"Внешнее содержимое не прошло проверку: {block_type}") from exc
 
@@ -433,29 +454,46 @@ class ChunkingService:
                 process_text(item)
             else:
                 processor = self.external_processors.get(item.type)
-                if processor is None:
+                validator = self.external_validators.get(item.type)
+                base = len(chunks)
+                section = list(item.section_path)
+
+                def fits(text, section=section):
+                    return self.counter.full_count(ChunkContextBuilder.embedding_text(
+                        text, section, self.counter)) <= budget
+
+                if processor is not None and validator is not None:
+                    try:
+                        fragments = processor.process(item, document.context)
+                        if not fragments:
+                            raise ValidationError("Специализированный обработчик вернул пустой результат")
+                        for fragment in fragments:
+                            if not fragment.text.strip() or not fits(fragment.text):
+                                raise ValidationError("Специализированный фрагмент пуст или превышает бюджет")
+                            region = Region(fragment.text, [], section, True, "external")
+                            append_piece(region, 0, len(fragment.text), "external",
+                                         attachments=fragment.attachment_ids, metadata=fragment.metadata)
+                            chunks[-1].source_spans = fragment.source_spans
+                        validator.validate(replace(document, blocks=[item]), chunks[base:], self.counter, maximum)
+                    except Exception as exc:
+                        del chunks[base:]
+                        reason = f"external_processor_failed:{type(exc).__name__}"
+                    else:
+                        continue
+                else:
+                    reason = f"external_processor_missing:{item.type}"
+                from .resources import optional_badge
+                text = external_fallback_text(item)
+                if text.strip() and not optional_badge(item):
+                    region = Region(text, [(0, len(text), item)], section, True, item.role)
+                    warning = f"external_text_fallback:{item.id}:{reason}"
+                    for start, end in SafeTextSplitter(fits).split(text):
+                        append_piece(region, start, end, "external_fallback", reason,
+                                     metadata={"cell_relationships": "unverified"} if item.type == "TABLE" else {})
+                    warnings.append(warning)
+                else:
                     deferred.append(item)
-                    warnings.append(f"external_processor_missing:{item.type}:{item.id}")
-                    continue
-                fragments = processor.process(item, document.context)
-                if not fragments:
-                    deferred.append(item)
-                    warnings.append(f"external_processor_empty:{item.id}")
-                    continue
-                for fragment in fragments:
-                    region = Region(fragment.text, [], item.section_path, True, "external")
-                    # External processors own source interpretation and prepared-fragment boundaries.
-                    base = len(chunks)
-                    section = list(item.section_path)
-                    def fits(text, section=section):
-                        return self.counter.full_count(ChunkContextBuilder.embedding_text(
-                            text, section, self.counter)) <= budget
-                    for start, end in SafeTextSplitter(fits).split(fragment.text):
-                        append_piece(region, start, end, "external", attachments=fragment.attachment_ids,
-                                     metadata=fragment.metadata)
-                        chunks[-1].source_spans = fragment.source_spans
-                    if len(chunks) == base:
-                        raise ValidationError("External fragment is empty")
+                    warnings.append(f"{reason}:{item.id}")
         result = ProcessingResult(
             document.context, self.profile_id(profile, document.parser_profile), generation_id,
             document, chunks, deferred, list(dict.fromkeys(warnings)), "partial" if deferred else "complete",

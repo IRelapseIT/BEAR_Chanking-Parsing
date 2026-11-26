@@ -1,5 +1,6 @@
 import io
 import os
+import time
 from importlib.util import find_spec
 from pathlib import Path
 from typing import BinaryIO
@@ -96,7 +97,7 @@ class Services:
 
     def process_stored(self, stored: StoredObject, context: DocumentContext,
                        profile: ProcessingProfile, generation_id: str | None = None, *,
-                       processing_claim: tuple[str, str] | None = None) -> ProcessingResult:
+                       processing_claim: tuple[str, str] | None = None, parse_from: str | None = None) -> ProcessingResult:
         if processing_claim is not None:
             self.manifest.assert_processing_claim(*processing_claim)
         if generation_id:
@@ -109,10 +110,22 @@ class Services:
             from .errors import ParseError
             raise ParseError("Checksum не соответствует сохранённому объекту")
         context.checksum = stored.checksum
-        with self.object_storage.get_stream(stored.object_key) as source:
-            data = source.read(self.parser.max_file_bytes + 1)
-        document = self.parser.parse(data, context)
+        document = None
+        parsing_seconds = None
+        if parse_from or generation_id:
+            try:
+                document, parsing_seconds = self.manifest.load_parsed(parse_from or generation_id)
+            except StorageError:
+                if parse_from:
+                    raise
+        if document is None:
+            started = time.perf_counter()
+            with self.object_storage.get_stream(stored.object_key) as source:
+                data = source.read(self.parser.max_file_bytes + 1)
+            document = self.parser.parse(data, context)
+            parsing_seconds = time.perf_counter() - started
         if processing_claim:
+            self.manifest.save_parsed(*processing_claim, document, parsing_seconds or 0.0)
             self.manifest.set_processing_phase(*processing_claim, "chunking")
         for processor in self.external_processors.values():
             if hasattr(processor, "budget"):
@@ -126,6 +139,9 @@ class Services:
         result.metrics["acceptance"] = assess(result)
         result.metrics["original_object_key"] = stored.object_key
         result.metrics["original_size_bytes"] = stored.size_bytes
+        result.metrics["parsing_seconds"] = parsing_seconds if not parse_from else 0.0
+        if parse_from:
+            result.metrics["parse_from"] = parse_from
         import tracemalloc
         if tracemalloc.is_tracing():
             result.metrics["python_peak_allocated_bytes"] = tracemalloc.get_traced_memory()[1]
