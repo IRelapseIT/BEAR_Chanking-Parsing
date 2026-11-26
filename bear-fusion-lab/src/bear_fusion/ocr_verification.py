@@ -73,7 +73,19 @@ def compare_lines(primary, secondary):
             "conflicts": conflicts, "reasons": reasons}
 
 
-def run_worker(command, output, budget, env):
+def workspace_size(directory):
+    total = 0
+    for root, _, files in os.walk(directory):
+        for name in files:
+            try:
+                total += (Path(root) / name).stat().st_size
+            except FileNotFoundError:
+                continue
+    return total
+
+
+def run_worker(command, output, budget, env, *, max_output_bytes=2 * 1024 * 1024,
+               max_memory_bytes=2 * 1024**3, work_dir=None, max_work_bytes=None):
     import psutil
 
     deadline = time.monotonic() + budget
@@ -87,8 +99,10 @@ def run_worker(command, output, budget, env):
                     rss = sum(item.memory_info().rss for item in [parent, *children])
                 except psutil.NoSuchProcess:
                     rss = 0
-                if rss > 2 * 1024**3:
+                if rss > max_memory_bytes:
                     raise ValueError("secondary_memory_limit")
+                if max_work_bytes and workspace_size(work_dir) > max_work_bytes:
+                    raise ValueError("secondary_disk_limit")
                 if time.monotonic() >= deadline:
                     raise subprocess.TimeoutExpired(command, budget)
                 time.sleep(.1)
@@ -104,8 +118,10 @@ def run_worker(command, output, budget, env):
                     except psutil.Error:
                         pass
                 process.kill()
-    if output.stat().st_size > 2 * 1024 * 1024:
+    if output.stat().st_size > max_output_bytes:
         raise ValueError("secondary_output_limit")
+    if max_work_bytes and workspace_size(work_dir) > max_work_bytes:
+        raise ValueError("secondary_disk_limit")
 
 
 class PaddleVerifier:

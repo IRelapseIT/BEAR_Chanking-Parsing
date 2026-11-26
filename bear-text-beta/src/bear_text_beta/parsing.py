@@ -277,6 +277,14 @@ class ParsingPipeline:
             image_parser = ImageParser(self.limits, asset_dir, object_storage)
             self.parsers.update({suffix: image_parser for suffix in (".png", ".jpg", ".jpeg")})
         self.parsers.update(extra_parsers or {})
+        if find_spec("bear_fusion") is not None:
+            from .office_conversion import OfficeConversionParser
+            from .unified_parsing import DOCXParser
+
+            native_docx = (self.parsers[".docx"] if isinstance(self.parsers[".docx"], DOCXParser) else DOCXParser())
+            office_parser = OfficeConversionParser(self.limits, native_docx)
+            for suffix in (".doc", ".odt", ".rtf"):
+                self.parsers.setdefault(suffix, office_parser)
 
     def parse(self, data: bytes, context: DocumentContext) -> ParsedDocument:
         if len(data) > self.max_file_bytes:

@@ -30,6 +30,9 @@ MIME_TYPES = {
     ".png": "image/png",
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
+    ".doc": "application/msword",
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".rtf": "application/rtf",
 }
 XLS_SIGNATURE = bytes.fromhex("D0 CF 11 E0 A1 B1 1A E1")
 SPREADSHEET_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -99,6 +102,7 @@ class FileValidator:
     SIGNATURES = {
         ".docx": b"PK\x03\x04", ".xlsx": b"PK\x03\x04", ".xls": XLS_SIGNATURE,
         ".png": b"\x89PNG\r\n\x1a\n", ".jpg": b"\xff\xd8\xff", ".jpeg": b"\xff\xd8\xff",
+        ".doc": XLS_SIGNATURE, ".odt": b"PK\x03\x04", ".rtf": b"{\\rtf",
     }
 
     def __init__(self, limits: FileLimits | None = None, allowed_extensions: set[str] | None = None):
@@ -229,6 +233,53 @@ class FileValidator:
         except (zipfile.BadZipFile, OSError, etree.XMLSyntaxError, RuntimeError, ValueError) as exc:
             raise ParseError("Повреждённый или неподдерживаемый XLSX") from exc
 
+    def validate_odt(self, data):
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                entries = archive.infolist()
+                if len(entries) > self.limits.max_docx_entries:
+                    raise ParseError("ODT превышает лимит ZIP-элементов")
+                names = {entry.filename for entry in entries}
+                if len(names) != len(entries) or not {"mimetype", "content.xml", "META-INF/manifest.xml"} <= names:
+                    raise ParseError("ODT не содержит однозначного каталога документа")
+                mimetype = archive.getinfo("mimetype")
+                expected = MIME_TYPES[".odt"].encode("ascii")
+                if mimetype.file_size != len(expected) or archive.read(mimetype) != expected:
+                    raise ParseError("Контейнер не является текстовым ODT")
+                total, attachment_bytes, attachments = 0, 0, 0
+                for entry in entries:
+                    name = entry.filename
+                    if (entry.flag_bits & 1 or name.startswith("/") or "\\" in name
+                            or ".." in name.split("/") or ":" in name):
+                        raise ParseError("Неподдерживаемая запись в ODT")
+                    if entry.is_dir():
+                        continue
+                    if total + entry.file_size > self.limits.max_docx_uncompressed_bytes:
+                        raise ParseError("ODT превышает лимит распакованного содержимого")
+                    attached = name.startswith(("Pictures/", "Object ", "ObjectReplacements/"))
+                    if attached:
+                        attachments += 1
+                        if attachments > self.limits.max_attachments:
+                            raise ParseError("ODT превышает лимит числа вложений")
+                    parser = xml_parser(target=OdtXmlValidation()) if name.endswith(".xml") else None
+                    with archive.open(entry) as source:
+                        entry_bytes = 0
+                        while chunk := source.read(1024 * 1024):
+                            total += len(chunk)
+                            if total > self.limits.max_docx_uncompressed_bytes:
+                                raise ParseError("ODT превышает лимит распаковки")
+                            if attached:
+                                entry_bytes += len(chunk)
+                                attachment_bytes += len(chunk)
+                                if (entry_bytes > self.limits.max_attachment_bytes
+                                        or attachment_bytes > self.limits.max_total_attachment_bytes):
+                                    raise ParseError("ODT превышает лимит распаковки вложений")
+                            if parser is not None:
+                                parser.feed(chunk)
+                    if parser is not None:
+                        parser.close()
+        except (zipfile.BadZipFile, OSError, etree.XMLSyntaxError, RuntimeError, ValueError) as exc:
+            raise ParseError("Повреждённый или неподдерживаемый ODT") from exc
 
 def xml_parser(**kwargs):
     return etree.XMLParser(resolve_entities=False, load_dtd=False, no_network=True, huge_tree=False, **kwargs)
@@ -262,6 +313,18 @@ class XlsxArchiveBudget:
             self.is_xlsx = True
         if self.cells + self.merged_cells > self.maximum:
             raise ParseError("XLSX превышает лимит ячеек с учётом объединений")
+
+    def close(self):
+        return None
+
+
+class OdtXmlValidation:
+    def doctype(self, name, public_id, system_id):
+        raise ParseError("DTD внутри ODT запрещена")
+
+    def start(self, tag, attrs):
+        if tag == "{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}encryption-data":
+            raise ParseError("Зашифрованные записи ODT не поддерживаются")
 
     def close(self):
         return None

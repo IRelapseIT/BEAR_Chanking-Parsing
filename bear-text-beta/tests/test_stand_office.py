@@ -1,5 +1,9 @@
 import io
+import os
+import subprocess
+import tempfile
 from dataclasses import replace
+from pathlib import Path
 from zipfile import ZIP_STORED, ZipFile
 
 import pytest
@@ -27,6 +31,21 @@ def make_odt(phrase):
     return buffer.getvalue()
 
 
+def make_doc(phrase):
+    from bear_text_beta.office_conversion import libreoffice_executable
+
+    executable = libreoffice_executable()
+    assert executable, "LibreOffice is required to generate the binary DOC fixture"
+    with tempfile.TemporaryDirectory(prefix="bear-doc-fixture-") as folder:
+        directory = Path(folder)
+        source = directory / "notes.rtf"
+        source.write_text(r"{\rtf1\ansi " + phrase + "}", encoding="ascii")
+        command = [executable, "-env:UserInstallation=" + (directory / "profile").as_uri(),
+                   "--headless", "--convert-to", "doc:MS Word 97", "--outdir", str(directory), str(source)]
+        subprocess.run(command, capture_output=True, check=True, timeout=45)
+        return source.with_suffix(".doc").read_bytes()
+
+
 def test_office_unavailable_checked_before_conversion(tmp_path, context, monkeypatch):
     monkeypatch.setenv("BEAR_SOFFICE", str(tmp_path / "missing-executable"))
     pipeline = ParsingPipeline(tmp_path)
@@ -50,12 +69,15 @@ def test_odt_expansion_is_bounded_before_conversion(tmp_path, context):
 
 
 @pytest.mark.parametrize(("suffix", "payload"), [
-    ("rtf", br"{\rtf1\ansi Contract orchard text.}"), ("odt", make_odt("Contract orchard text.")),
+    ("rtf", br"{\rtf1\ansi Contract orchard text.}"), ("odt", make_odt("Contract orchard text.")), ("doc", None),
 ])
 def test_real_office_adapter_marks_derivative_provenance(tmp_path, context, suffix, payload):
+    if os.getenv("BEAR_TEST_LIBREOFFICE") != "1":
+        pytest.skip("Set BEAR_TEST_LIBREOFFICE=1 to exercise a local LibreOffice")
     pipeline = ParsingPipeline(tmp_path)
-    if not pipeline.parsers.get("." + suffix) or not pipeline.parsers["." + suffix].health()["ready"]:
-        pytest.skip("LibreOffice is absent")
+    assert pipeline.parsers["." + suffix].health()["ready"]
+    if suffix == "doc":
+        payload = make_doc("Contract orchard text.")
     parsed = pipeline.parse(payload, replace(context, filename="notes." + suffix))
     block = parsed.blocks[0]
     assert block.text == "Contract orchard text."
