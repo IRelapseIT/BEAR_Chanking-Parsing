@@ -1,6 +1,7 @@
 """Local stand views over the canonical ingestion and search services."""
 import io
 import json
+import re
 from dataclasses import asdict
 from pathlib import Path
 from typing import Literal
@@ -8,13 +9,14 @@ from urllib.parse import quote
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, TypeAdapter
 
 from .chunking import external_fallback_text
-from .comparison import compare_results
+from .comparison import compare_results, coverage
 from .errors import StorageError, ValidationError
-from .file_validation import StoredObject
+from .file_validation import MIME_TYPES, FileLimits, StoredObject
 from .models import DocumentContext, ProcessingProfile
 
 
@@ -25,13 +27,6 @@ class RechunkRequest(BaseModel):
     threshold: float = Field(default=0.8, gt=0, lt=1)
     similarity_window: int = Field(default=2, ge=1, le=16)
     fixed_characters: int = Field(default=1000, ge=8, le=100_000)
-
-
-def paragraphs(document):
-    for block in document.blocks:
-        text = block.text or external_fallback_text(block)
-        if text.strip():
-            yield text
 
 
 def document_text(document, markdown=False):
@@ -45,7 +40,7 @@ def document_text(document, markdown=False):
             elif block.role == "list_item":
                 text = "- " + text
             elif block.role == "code":
-                fence = "~" * max(3, max((len(part) for part in __import__("re").findall(r"~+", text)), default=0) + 1)
+                fence = "~" * max(3, max((len(part) for part in re.findall(r"~+", text)), default=0) + 1)
                 text = f"{fence}\n{text}\n{fence}"
         yield text + "\n\n"
 
@@ -70,26 +65,34 @@ def raster_page(storage, key, filename, page, rotation):
             with pdfium.PdfDocument(original.read()) as document:
                 if not 1 <= page <= len(document):
                     raise HTTPException(404, "Страница не найдена")
-                with document[page - 1] as pdf_page:
+                pdf_page = document[page - 1]
+                try:
                     width, height = pdf_page.get_size()
                     if not width or not height:
-                        raise HTTPException(422, "Некорректный размер страницы")
+                        raise HTTPException(422, "Invalid page dimensions")
                     scale = min(2.0, 1800 / max(width, height))
-                    with pdf_page.render(scale=scale, rotation=rotation) as bitmap:
+                    bitmap = pdf_page.render(scale=scale, rotation=rotation)
+                    try:
                         image = bitmap.to_pil().copy()
+                    finally:
+                        bitmap.close()
+                finally:
+                    pdf_page.close()
                 count = len(document)
         else:
             if page != 1:
                 raise HTTPException(404, "Страница не найдена")
             with Image.open(original) as source:
-                if source.width * source.height > 25_000_000:
+                if source.width * source.height > FileLimits().max_image_pixels:
                     raise HTTPException(422, "Слишком большое изображение")
                 image = ImageOps.exif_transpose(source).convert("RGB").rotate(-rotation, expand=True)
+                width, height = image.size
                 image.thumbnail((1800, 1800))
             count = 1
     output = io.BytesIO()
     image.convert("RGB").save(output, format="JPEG", quality=88)
-    return Response(output.getvalue(), media_type="image/jpeg", headers={"X-Page-Count": str(count)})
+    return Response(output.getvalue(), media_type="image/jpeg", headers={"X-Page-Count": str(count), "X-Page-Width": str(width),
+                                                                "X-Page-Height": str(height)})
 
 
 def stand_router(get_services):
@@ -108,6 +111,12 @@ def stand_router(get_services):
         return {"extensions": sorted(runtime.parser.parsers),
                 "embedding_profile": asdict(runtime.profile), "profile_id": runtime.profile.identifier(),
                 "collection": getattr(runtime.vectors, "collection", ""),
+                "format_availability": {ext: (parser.health() if ext in {".doc", ".odt", ".rtf"} else {"ready": True})
+                                        for ext, parser in sorted(runtime.parser.parsers.items())},
+                "mime_types": {ext: MIME_TYPES.get(ext) for ext in sorted(runtime.parser.parsers)},
+                "retrieval_modes": ["dense", "sparse", "hybrid"] if getattr(runtime.vectors, "sparse_provider", None)
+                else ["dense"],
+                "reranker_configured": bool(getattr(getattr(runtime.indexer, "retrieval", None), "reranker", None)),
                 "strategies": ["adaptive", "fixed", "token", "semantic"],
                 "defaults": asdict(ProcessingProfile())}
 
@@ -136,6 +145,22 @@ def stand_router(get_services):
             new_id, StoredObject(**row["stored"]), DocumentContext(**row["context"]), profile, parse_from=str(job_id))
         return {"job_id": new_id, "status": "queued" if created else "already_submitted"}
 
+    @router.delete("/jobs/{job_id}/index")
+    def delete_index(job_id: UUID, tenant_id: str, space_id: str):
+        runtime, _ = scoped(job_id, tenant_id, space_id)
+        clean = runtime.manifest.remove_index(str(job_id), runtime.vectors.delete_generation)
+        return {"status": "index_removed", "cleanup_pending": not clean}
+
+    @router.delete("/jobs/{job_id}")
+    def delete_run(job_id: UUID, tenant_id: str, space_id: str):
+        runtime, _ = scoped(job_id, tenant_id, space_id)
+        clean = runtime.manifest.remove_run(str(job_id), runtime.vectors.delete_generation)
+        return {"status": "run_removed", "cleanup_pending": not clean}
+
+    @router.get("/search/history")
+    def history(tenant_id: str, space_id: str, limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0)):
+        return {"history": get_services().manifest.search_history(tenant_id, space_id, limit, offset)}
+
     @router.get("/jobs/{job_id}/compare/{other_id}")
     def compare(job_id: UUID, other_id: UUID, tenant_id: str, space_id: str):
         runtime, _ = scoped(job_id, tenant_id, space_id)
@@ -144,7 +169,9 @@ def stand_router(get_services):
 
     @router.get("/jobs/{job_id}/page/{page}")
     def preview(job_id: UUID, page: int, tenant_id: str, space_id: str,
-                rotation: Literal[0, 90, 180, 270] = 0):
+                rotation: int = 0):
+        if rotation not in {0, 90, 180, 270}:
+            raise HTTPException(422, "Допустимый поворот: 0, 90, 180 или 270 градусов")
         runtime, row = scoped(job_id, tenant_id, space_id)
         filename = row["context"]["filename"]
         if Path(filename).suffix.lower() not in {".pdf", ".png", ".jpg", ".jpeg"}:
@@ -175,22 +202,39 @@ def stand_router(get_services):
             return StreamingResponse(document_text(document, kind.endswith(".md")),
                                      media_type="text/plain; charset=utf-8", headers=headers)
         if kind == "chunks.jsonl":
+            sources = {block.id: block.source for block in document.blocks}
             chunks = result.chunks if result else ()
-            return StreamingResponse((json.dumps(asdict(chunk), ensure_ascii=False) + "\n" for chunk in chunks),
-                                     media_type="application/x-ndjson", headers=headers)
+
+            def export_chunks():
+                for chunk in chunks:
+                    record = asdict(chunk)
+                    record["sources"] = [
+                        {**asdict(span), **asdict(sources[span.block_id])} for span in chunk.source_spans
+                        if span.block_id in sources
+                    ]
+                    yield json.dumps(record, ensure_ascii=False) + "\n"
+
+            return StreamingResponse(export_chunks(), media_type="application/x-ndjson", headers=headers)
         metrics = result.metrics if result else {}
         if kind == "warnings.json":
             value = {"parser": document.warnings, "chunking": result.warnings if result else [],
                      "quality": metrics.get("acceptance", {}).get("warnings", [])}
         elif kind == "configuration.json":
             value = {"parsing_profile": document.parser_profile, "chunking": row["profile"],
-                     "embedding": metrics.get("embedding_profile") or asdict(runtime.profile)}
+                     "embedding": metrics.get("embedding_profile") or asdict(runtime.profile),
+                     "versions": metrics.get("dependency_versions", {}),
+                     "acceptance_policy": metrics.get("acceptance", {}).get("policy"),
+                     "parsed_from_job": row["parse_from"]}
         else:
             lines = [f"# Прогон {job_id}", "", f"- Блоков: {len(document.blocks)}",
                      f"- Чанков: {len(result.chunks) if result else 0}",
                      f"- Парсинг, с: {parse_seconds}",
                      f"- Индекс: {runtime.manifest.index_status(str(job_id))['status']}", "",
                      "Покрытие извлечённого текста не определяет полноту оригинала."]
+            if result:
+                lines += ["", "## Покрытие извлечённого текста", ""] + [
+                    f"- {key}: {value}" for key, value in coverage(result).items()]
+                lines += ["", f"Предупреждения и технические события: {len(result.metrics.get('acceptance', {}).get('warnings', []))}"]
             return Response("\n".join(lines), media_type="text/plain", headers=headers)
         return Response(json.dumps(value, ensure_ascii=False), media_type=application_json, headers=headers)
 
@@ -198,3 +242,16 @@ def stand_router(get_services):
 
 
 application_json = "application/json"
+
+
+def mount_ui(app):
+    assets = Path(__file__).with_name("web")
+    app.mount("/stand", StaticFiles(directory=assets), name="stand")
+
+    @app.get("/", include_in_schema=False)
+    def stand_page():
+        return FileResponse(assets / "index.html", headers={
+            "Content-Security-Policy": "default-src 'self'; img-src 'self' blob:; style-src 'self' 'unsafe-inline'; "
+                                       "object-src 'none'; base-uri 'none'; frame-ancestors 'none'",
+            "X-Content-Type-Options": "nosniff",
+        })

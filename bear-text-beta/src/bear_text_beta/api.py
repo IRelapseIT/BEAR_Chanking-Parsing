@@ -4,7 +4,7 @@ from threading import Lock
 from typing import Annotated, Literal
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
@@ -14,6 +14,7 @@ from .health import runtime_health
 from .models import DocumentContext, ProcessingProfile
 from .runtime import default_services
 from .serialization import result_adapter
+from .stand import mount_ui, stand_router
 from .upload_limit import RequestSizeLimitMiddleware
 
 
@@ -22,6 +23,18 @@ class SearchRequest(BaseModel):
     tenant_id: str = Field(min_length=1)
     space_id: str = Field(min_length=1)
     top_k: int = Field(default=5, ge=1, le=100)
+
+
+class TraceSearchRequest(SearchRequest):
+    document_ids: list[str] = Field(default_factory=list, max_length=200)
+    mode: Literal["dense", "sparse", "hybrid"] = "dense"
+    prefetch: int | None = Field(default=None, ge=1, le=200)
+    rerank_candidates: int | None = Field(default=None, ge=1, le=200)
+    use_rerank: bool = False
+    include_parents: bool = True
+    context_max_tokens: int = Field(default=480, ge=1, le=8192)
+    expected_document_id: str | None = Field(default=None, max_length=200)
+    expected_fragment: str | None = Field(default=None, max_length=1000)
 
 
 def create_app(services=None):
@@ -45,6 +58,12 @@ def create_app(services=None):
                 if app.state.services is None:
                     app.state.services = default_services()
         return app.state.services
+
+    def validate_job_scope(runtime, job_id, tenant_id, space_id):
+        if tenant_id is None and space_id is None:
+            return
+        if not tenant_id or not space_id or runtime.manifest.job_record(str(job_id), tenant_id, space_id) is None:
+            raise HTTPException(404, "Задание не найдено в выбранной области")
 
     @app.post("/v1/documents", status_code=202)
     async def submit_document(file: Annotated[UploadFile, File()], context: Annotated[str, Form()]):
@@ -80,8 +99,9 @@ def create_app(services=None):
         return await run_in_threadpool(enqueue)
 
     @app.get("/v1/jobs/{job_id}")
-    def ingestion_status(job_id: UUID):
+    def ingestion_status(job_id: UUID, tenant_id: str | None = None, space_id: str | None = None):
         runtime = get_services()
+        validate_job_scope(runtime, job_id, tenant_id, space_id)
         state = runtime.manifest.processing_status(str(job_id))
         if state is None:
             return JSONResponse(status_code=404, content={"error": "JobNotFound"})
@@ -89,6 +109,10 @@ def create_app(services=None):
         state["index"] = index
         state["search_available"] = index["search_available"]
         state["outcome"] = "failed" if state["status"] == "failed" else None
+        state["execution_state"] = state["status"]
+        state["processing_phase"] = state["phase"] if state["phase"] in {
+            "queued", "parsing", "chunking", "embedding", "indexing"
+        } and state["status"] not in {"complete", "failed"} else None
         state["worker_status"] = state["status"]
         state["status"] = ("failed" if state["status"] == "failed" else state["phase"])
         try:
@@ -105,23 +129,31 @@ def create_app(services=None):
         return state
 
     @app.get("/v1/jobs/{job_id}/result")
-    def ingestion_result(job_id: UUID):
-        result = get_services().manifest.load(str(job_id))
+    def ingestion_result(job_id: UUID, tenant_id: str | None = None, space_id: str | None = None):
+        runtime = get_services()
+        validate_job_scope(runtime, job_id, tenant_id, space_id)
+        result = runtime.manifest.load(str(job_id))
         return result_adapter().dump_python(result, mode="json")
 
     @app.post("/v1/jobs/{job_id}/retry", status_code=202)
-    def retry_ingestion(job_id: UUID):
-        get_services().manifest.retry_ingestion(str(job_id))
+    def retry_ingestion(job_id: UUID, tenant_id: str | None = None, space_id: str | None = None):
+        runtime = get_services()
+        validate_job_scope(runtime, job_id, tenant_id, space_id)
+        runtime.manifest.retry_ingestion(str(job_id))
         return {"job_id": str(job_id), "status": "queued"}
 
     @app.post("/v1/jobs/{job_id}/reassess", status_code=202)
-    def reassess_ingestion(job_id: UUID):
-        queued = get_services().manifest.reassess_ingestion(str(job_id))
+    def reassess_ingestion(job_id: UUID, tenant_id: str | None = None, space_id: str | None = None):
+        runtime = get_services()
+        validate_job_scope(runtime, job_id, tenant_id, space_id)
+        queued = runtime.manifest.reassess_ingestion(str(job_id))
         return {"job_id": str(job_id), "status": "queued" if queued else "already_submitted"}
 
     @app.post("/v1/jobs/{job_id}/reprocess", status_code=202)
-    def reprocess_ingestion(job_id: UUID):
-        new_job = get_services().manifest.reprocess_ingestion(str(job_id))
+    def reprocess_ingestion(job_id: UUID, tenant_id: str | None = None, space_id: str | None = None):
+        runtime = get_services()
+        validate_job_scope(runtime, job_id, tenant_id, space_id)
+        new_job = runtime.manifest.reprocess_ingestion(str(job_id))
         return {"job_id": new_job, "source_job_id": str(job_id), "status": "queued"}
 
     @app.delete("/v1/documents/{document_id}")
@@ -146,6 +178,21 @@ def create_app(services=None):
                              "sources": hit.payload.get("sources", []),
                              "acceptance": hit.payload.get("acceptance", {}),
                              "generation_id": hit.payload["generation_id"]} for hit in hits]}
+
+    @app.post("/v1/search/trace")
+    def detailed_search(request: TraceSearchRequest):
+        runtime = get_services()
+        options = request.model_dump(exclude={"query", "tenant_id", "space_id", "top_k",
+                                              "expected_document_id", "expected_fragment"})
+        result = runtime.indexer.search_detailed(request.query, request.tenant_id, request.space_id,
+                                                request.top_k, **options)
+        expected = request.expected_document_id, request.expected_fragment
+        if any(expected):
+            result["expectation"] = {"document_id": expected[0], "fragment": expected[1],
+                "matched": any((not expected[0] or h["payload"]["document_id"] == expected[0])
+                               and (not expected[1] or expected[1] in h["payload"]["text"]) for h in result["hits"])}
+        result["search_id"] = runtime.manifest.record_search(request.model_dump(), result)
+        return result
 
     @app.exception_handler(BearError)
     async def expected_error(request, exc):
@@ -178,9 +225,8 @@ def create_app(services=None):
         return JSONResponse(status_code=200 if available else 503,
                             content={**state, "ready": available, "capability": capability})
 
-    from .stand import stand_router
-
     app.include_router(stand_router(get_services))
+    mount_ui(app)
     return app
 
 

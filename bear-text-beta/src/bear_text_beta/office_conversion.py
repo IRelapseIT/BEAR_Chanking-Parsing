@@ -30,6 +30,9 @@ def libreoffice_executable():
     configured = os.getenv("BEAR_SOFFICE") or os.getenv("BEAR_LIBREOFFICE")
     if configured:
         path = Path(configured)
+        # On Windows the console wrapper provides usable stdout for --version.
+        if path.name.lower() == "soffice.exe" and path.with_suffix(".com").is_file():
+            path = path.with_suffix(".com")
         return str(path.resolve()) if path.is_file() else None
     candidate = shutil.which("soffice.com") or shutil.which("soffice") or shutil.which("libreoffice")
     if candidate:

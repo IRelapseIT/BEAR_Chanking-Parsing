@@ -55,6 +55,18 @@ def test_office_unavailable_checked_before_conversion(tmp_path, context, monkeyp
         pipeline.parse(br"{\rtf1 example}", replace(context, filename="example.rtf"))
 
 
+@pytest.mark.skipif(os.name != "nt", reason="Windows LibreOffice console wrapper")
+def test_windows_libreoffice_uses_console_wrapper(tmp_path, monkeypatch):
+    from bear_text_beta.office_conversion import libreoffice_executable
+
+    gui = tmp_path / "soffice.exe"
+    console = tmp_path / "soffice.com"
+    for path in (gui, console):
+        path.touch()
+    monkeypatch.setenv("BEAR_SOFFICE", str(gui))
+    assert libreoffice_executable() == str(console.resolve())
+
+
 @pytest.mark.parametrize(("suffix", "payload"), [("rtf", b"not RTF"), ("odt", b"not ODT"), ("doc", b"not DOC")])
 def test_office_format_validation_precedes_launch(tmp_path, context, suffix, payload, monkeypatch):
     monkeypatch.setenv("BEAR_SOFFICE", str(tmp_path / "missing-executable"))

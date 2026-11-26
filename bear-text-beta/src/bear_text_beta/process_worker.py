@@ -44,7 +44,10 @@ def run_once(services, *, lease_seconds=600, heartbeat_interval=None) -> bool:
             acceptance = result.metrics["acceptance"]
             if acceptance["accepted_for_indexing"]:
                 services.manifest.set_processing_phase(job["id"], token, "embedding")
-                services.indexer.index(result, processing_claim=(job["id"], token))
+                index_started = time.perf_counter()
+                index_result = services.indexer.index(result, processing_claim=(job["id"], token))
+                services.manifest.save_index_diagnostics(job["id"], token, time.perf_counter() - index_started,
+                                                         index_result)
                 services.manifest.mark_published(job["id"])
                 services.manifest.set_processing_phase(job["id"], token, "searchable")
             else:
@@ -69,11 +72,22 @@ def run_once(services, *, lease_seconds=600, heartbeat_interval=None) -> bool:
 
 def main():
     services = default_services()
+    stop = Event()
+
+    def publish_heartbeat():
+        while not stop.is_set():
+            services.manifest.worker_seen()
+            stop.wait(5)
+
+    heartbeat = Thread(target=publish_heartbeat, daemon=True)
+    heartbeat.start()
     try:
         while True:
             if not run_once(services):
                 time.sleep(1)
     finally:
+        stop.set()
+        heartbeat.join()
         services.close()
 
 

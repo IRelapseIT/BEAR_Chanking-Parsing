@@ -6,10 +6,25 @@ def boundaries(result):
 
 
 def coverage(result):
-    count = sum(s.end_char - s.start_char for chunk in result.chunks for s in chunk.source_spans)
-    expected = sum(len(block.text) for block in result.parsed_document.blocks if block.type == "TEXT")
-    return {"covered_characters": count, "expected_text_characters": expected,
-            "deferred_blocks": len(result.deferred_blocks)}
+    blocks = result.parsed_document.blocks
+    text_blocks = {block.id: len(block.text) for block in blocks if block.type == "TEXT"}
+    spans = [span for chunk in result.chunks for span in chunk.source_spans]
+    spans_by_block = {}
+    for span in spans:
+        spans_by_block.setdefault(span.block_id, []).append((span.start_char, span.end_char))
+    count = 0
+    for block_id, length in text_blocks.items():
+        end = 0
+        for start, stop in sorted(spans_by_block.get(block_id, [])):
+            stop = min(length, stop)
+            count += max(0, stop - max(end, start))
+            end = max(end, stop)
+    return {
+        "covered_characters": count, "expected_text_characters": sum(text_blocks.values()),
+        "blocks_represented": len(spans_by_block), "blocks_total": len(blocks),
+        "pages_with_text": sorted({block.source.page for block in blocks if block.source.page and block.text.strip()}),
+        "deferred_blocks": len(result.deferred_blocks), "source_fidelity": "unverified",
+    }
 
 
 def compare_results(left, right):

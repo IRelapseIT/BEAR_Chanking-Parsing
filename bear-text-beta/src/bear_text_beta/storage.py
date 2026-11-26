@@ -35,6 +35,15 @@ class SQLiteManifest:
                 CREATE TABLE IF NOT EXISTS outbox (
                     job_id TEXT PRIMARY KEY, published INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS local_search_history (
+                    id TEXT PRIMARY KEY, tenant TEXT NOT NULL, space TEXT NOT NULL,
+                    created_at REAL NOT NULL, request_json TEXT NOT NULL, response_json TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS local_search_scope ON local_search_history(tenant,space,created_at);
+                CREATE TABLE IF NOT EXISTS worker_health (id INTEGER PRIMARY KEY, seen_at REAL NOT NULL);
+                CREATE TABLE IF NOT EXISTS index_diagnostics (
+                    id TEXT PRIMARY KEY, elapsed_seconds REAL NOT NULL, output_json TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS parsed_checkpoints (
                     id TEXT PRIMARY KEY, document_json TEXT NOT NULL, parsing_seconds REAL NOT NULL
                 );
@@ -370,16 +379,97 @@ class SQLiteManifest:
             return TypeAdapter(ParsedDocument).validate_json(row["document_json"]), row["parsing_seconds"]
         return self.load(job_id).parsed_document, None
 
+    def worker_seen(self):
+        with self.connection() as db:
+            db.execute("INSERT OR REPLACE INTO worker_health VALUES (1,?)", (time.time(),))
+
+    def worker_ready(self):
+        with self.connection() as db:
+            row = db.execute("SELECT seen_at FROM worker_health WHERE id=1").fetchone()
+        return row is not None and time.time() - row[0] < 15
+
+    def save_index_diagnostics(self, job_id, token, seconds, output):
+        with self.connection() as db:
+            self._require_processing_claim(db, job_id, token)
+            db.execute("INSERT OR REPLACE INTO index_diagnostics VALUES (?,?,?)",
+                       (job_id, seconds, json.dumps(output, ensure_ascii=False, allow_nan=False)))
+
+    def record_search(self, request, response):
+        identity = str(uuid4())
+        with self.connection() as db:
+            db.execute("INSERT INTO local_search_history VALUES (?,?,?,?,?,?)", (
+                identity, request["tenant_id"], request["space_id"], time.time(),
+                json.dumps(request, ensure_ascii=False), json.dumps(response, ensure_ascii=False, allow_nan=False)))
+        return identity
+
+    def search_history(self, tenant_id, space_id, limit, offset):
+        with self.connection() as db:
+            rows = db.execute(
+                "SELECT id,created_at,request_json,response_json FROM local_search_history "
+                "WHERE tenant=? AND space=? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                (tenant_id, space_id, limit, offset)).fetchall()
+        return [{"id": row["id"], "created_at": row["created_at"],
+                 "request": json.loads(row["request_json"]), "response": json.loads(row["response_json"])}
+                for row in rows]
+
+    def remove_run(self, job_id, delete_generation):
+        with self.connection() as db:
+            row = db.execute("SELECT * FROM processing_jobs WHERE id=?", (job_id,)).fetchone()
+            if row is None or row["status"] in {"pending", "running"}:
+                raise StorageError("Прогон не найден или ещё выполняется")
+            waiting = db.execute("SELECT id FROM processing_jobs WHERE parse_from=? AND "
+                                 "status IN ('pending','running')", (job_id,)).fetchone()
+            if waiting:
+                raise StorageError("Этот разбор используется другим заданием")
+            ctx = json.loads(row["context_json"])
+            key = (ctx["tenant_id"], ctx["space_id"], ctx["document_id"])
+            db.execute("UPDATE documents SET active_generation=NULL WHERE tenant=? AND space=? "
+                       "AND document=? AND active_generation=?", (*key, job_id))
+            db.execute("UPDATE documents SET desired_generation=active_generation WHERE tenant=? AND space=? "
+                       "AND document=? AND desired_generation=?", (*key, job_id))
+            for table in ("generations", "parsed_checkpoints", "index_diagnostics", "processing_jobs"):
+                db.execute(f"DELETE FROM {table} WHERE id=?", (job_id,))
+            db.execute("DELETE FROM outbox WHERE job_id=?", (job_id,))
+            try:
+                delete_generation(job_id)
+            except StorageError:
+                return False
+            return True
+
+    def remove_index(self, job_id, delete_generation):
+        with self.connection() as db:
+            row = db.execute("SELECT g.*,p.status AS worker_status FROM generations g "
+                             "JOIN processing_jobs p ON p.id=g.id WHERE g.id=?", (job_id,)).fetchone()
+            if row is None:
+                raise StorageError("Поколение не найдено")
+            if row["worker_status"] in {"pending", "running"}:
+                raise StorageError("Дождитесь окончания обработки")
+            key = (row["tenant"], row["space"], row["document"])
+            db.execute("UPDATE documents SET active_generation=NULL WHERE tenant=? AND space=? "
+                       "AND document=? AND active_generation=?", (*key, job_id))
+            db.execute("UPDATE generations SET status='checkpoint',attempts=0,error=NULL WHERE id=?", (job_id,))
+            db.execute("DELETE FROM index_diagnostics WHERE id=?", (job_id,))
+            db.execute("UPDATE processing_jobs SET phase='index_removed' WHERE id=?", (job_id,))
+            # Hold the manifest lock through deletion to fence concurrent retries.
+            try:
+                delete_generation(job_id)
+            except StorageError:
+                return False
+            return True
+
     def index_status(self, job_id):
         with self.connection() as db:
             row = db.execute(
                 "SELECT g.status,g.error,g.attempts,d.active_generation,d.desired_generation,d.deleted "
                 "FROM generations g JOIN documents d ON g.tenant=d.tenant AND g.space=d.space "
                 "AND g.document=d.document WHERE g.id=?", (job_id,)).fetchone()
+            details = db.execute("SELECT * FROM index_diagnostics WHERE id=?", (job_id,)).fetchone()
         if row is None or row["deleted"]:
             return {"status": "unavailable", "search_available": False}
         return {"status": row["status"], "error": row["error"], "attempts": row["attempts"],
                 "active_generation": row["active_generation"], "desired_generation": row["desired_generation"],
+                "elapsed_seconds": details["elapsed_seconds"] if details else None,
+                "diagnostics": json.loads(details["output_json"]) if details else {},
                 "search_available": row["active_generation"] == job_id and row["status"] == "ready"}
 
     def reassess_ingestion(self, job_id):

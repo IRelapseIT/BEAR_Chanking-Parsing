@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>BEAR · Стенд документов</title>
+  <link rel="stylesheet" href="/stand/style.css">
+  <script type="module" src="/stand/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#content">К содержимому</a>
+<header class="masthead">
+  <div><strong class="brand">BEAR</strong><span>Стенд документов</span></div>
+  <form id="scope">
+    <label>Tenant <input name="tenant" value="local" required maxlength="120"></label>
+    <label>Space <input name="space" value="stand" required maxlength="120"></label>
+    <button>Открыть область</button>
+  </form>
+</header>
+<div class="layout">
+  <nav aria-label="Разделы стенда">
+    <button type="button" data-tab="overview" aria-current="page">Обзор</button>
+    <button type="button" data-tab="documents">Документы</button>
+    <button type="button" data-tab="viewer">Просмотр</button>
+    <button type="button" data-tab="chunking">Чанкинг</button>
+    <button type="button" data-tab="index">Индекс</button>
+    <button type="button" data-tab="search">Поиск</button>
+    <button type="button" data-tab="runs">Прогоны</button>
+  </nav>
+  <main id="content" tabindex="-1">
+    <p id="notice" role="status"></p>
+    <aside id="active" aria-label="Выбранный прогон">Документ не выбран</aside>
+    <section id="overview" aria-labelledby="overview-title">
+      <h1 id="overview-title">Обзор</h1>
+      <ul id="services" class="services"></ul>
+      <dl id="metrics" class="metrics"></dl>
+    </section>
+    <section id="documents" aria-labelledby="documents-title" hidden>
+      <h1 id="documents-title">Документы</h1>
+      <form id="upload" class="panel controls">
+        <label>Файлы <input name="files" type="file" multiple required></label>
+        <button class="primary">Загрузить и обработать</button>
+      </form>
+      <p id="extensions"></p>
+      <ul id="uploads" class="items" aria-live="polite"></ul>
+      <div id="documents-list"></div>
+    </section>
+    <section id="viewer" aria-labelledby="viewer-title" hidden>
+      <h1 id="viewer-title">Просмотр документа</h1>
+      <div id="exports" class="toolbar"></div>
+      <div class="columns">
+        <div class="panel">
+          <h2>Оригинал</h2>
+          <div id="page-controls" class="controls" hidden>
+            <label>Страница <input id="page" type="number" min="1" value="1"></label>
+            <span id="page-total"></span>
+            <label>Масштаб <input id="zoom" type="range" min="50" max="250" value="100" step="10"></label>
+            <button type="button" id="rotate">Повернуть на 90°</button>
+          </div>
+          <div id="page-box"><p>Выберите документ</p></div>
+        </div>
+        <div class="panel">
+          <h2>Результат парсинга</h2>
+          <label>Найти в документе <input id="block-filter" type="search"></label>
+          <div class="toolbar">
+            <button type="button" id="plain">Текст</button>
+            <button type="button" id="markdown">Markdown</button>
+            <button type="button" id="blocks">Блоки</button>
+          </div>
+          <div id="parsed-view"></div>
+        </div>
+      </div>
+      <h2>Предупреждения и отсутствующее содержимое</h2>
+      <div id="warnings"></div>
+    </section>
+    <section id="chunking" aria-labelledby="chunking-title" hidden>
+      <h1 id="chunking-title">Чанкинг</h1>
+      <form id="rechunk" class="panel controls">
+        <label>Стратегия <select name="mode"><option>adaptive</option><option>fixed</option><option>token</option><option>semantic</option></select></label>
+        <label>Цель, токенов <input name="target" type="number" value="320" min="32" required></label>
+        <label>Максимум, токенов <input name="max" type="number" value="480" min="32" required></label>
+        <label>Порог semantic <input name="threshold" type="number" value=".8" min=".01" max=".99" step=".01" required></label>
+        <button>Перечанковать</button>
+      </form>
+      <p id="chunk-metrics"></p>
+      <p>Перекрытие чанков в текущих стратегиях равно 0.</p>
+      <div id="chunk-list"></div>
+    </section>
+    <section id="index" aria-labelledby="index-title" hidden>
+      <h1 id="index-title">Индекс</h1>
+      <dl id="index-state" class="metrics"></dl>
+      <div class="toolbar">
+        <button id="retry" type="button">Повторить индексацию</button>
+        <button id="reprocess" type="button">Повторить с оригинала</button>
+        <button id="reassess" type="button" hidden>Применить новую политику</button>
+        <button id="delete-index" type="button">Удалить индекс прогона</button>
+      </div>
+    </section>
+    <section id="search" aria-labelledby="search-title" hidden>
+      <h1 id="search-title">Поиск</h1>
+      <form id="search-form" class="panel controls">
+        <label class="grow">Вопрос <input name="query" type="search" required maxlength="4000"></label>
+        <label>top_k <input name="top_k" type="number" value="5" min="1" max="100" required></label>
+        <label>Документы <select name="documents" id="search-documents" multiple size="2" title="Без выбора используются все документы области"></select></label>
+        <label>Режим <select name="mode" id="search-mode"><option value="dense">Dense</option></select></label>
+        <button class="primary">Искать</button>
+        <details>
+          <summary>Параметры и контрольный вопрос</summary>
+          <div class="controls" id="search-options">
+            <label>Prefetch <input name="prefetch" type="number" min="1" max="200"></label>
+            <label>Кандидаты реранка <input name="candidates" type="number" min="1" max="200"></label>
+            <label id="rerank-setting" hidden><input name="rerank" type="checkbox"> Переранжировать</label>
+            <label><input name="parents" type="checkbox" checked> Родительский контекст</label>
+            <label>Ожидаемый документ <select name="expected_document" id="expected-documents"></select></label>
+            <label>Ожидаемый фрагмент <input name="expected_fragment" maxlength="1000"></label>
+          </div>
+        </details>
+      </form>
+      <div id="search-results"></div>
+      <details><summary>Диагностика поиска</summary><pre id="trace"></pre></details>
+      <div class="toolbar"><button type="button" id="search-export">Экспорт JSON</button></div>
+      <h2>История вопросов</h2>
+      <div id="search-history"></div>
+    </section>
+    <section id="runs" aria-labelledby="runs-title" hidden>
+      <h1 id="runs-title">Прогоны</h1>
+      <div id="runs-list"></div>
+      <form id="compare" class="toolbar">
+        <label>Сравнить с выбранным <select id="compare-run" required></select></label>
+        <button>Сравнить</button>
+      </form>
+      <pre id="comparison"></pre>
+      <button type="button" id="delete-run">Удалить выбранный прогон</button>
+      <button class="danger" id="delete-doc" type="button">Удалить документ из области</button>
+    </section>
+  </main>
+</div>
+</body>
+</html>

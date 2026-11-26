@@ -26,3 +26,6 @@ state-bge-m3/
 qdrant-storage-bge-m3/
 test-tmp*/
 *.egg-info/
+
+.coverage
+.playwright-cli/

@@ -3,7 +3,7 @@ import json
 import re
 import subprocess
 import tempfile
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from itertools import groupby
 from math import isfinite
 from pathlib import Path
@@ -233,7 +233,7 @@ def resolve(record, rule, attempts):
 def check_fields(document, path, pages, verifier, limits, policy, profile, mode):
     import pypdfium2 as pdfium
 
-    rules = tuple(replace(rule, required=False) for rule in DEFAULT_FIELDS) if profile is None else tuple(profile)
+    rules = () if profile is None else tuple(profile)
     blocks = {}
     for block in document.blocks:
         blocks.setdefault(block.source.page, []).append(block)

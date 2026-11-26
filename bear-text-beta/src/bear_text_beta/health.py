@@ -1,5 +1,9 @@
 """Liveness and capability readiness have different dependency requirements."""
 
+import os
+import shutil
+from pathlib import Path
+
 import httpx
 
 from .errors import BearError
@@ -27,7 +31,17 @@ def runtime_health(runtime):
     model_ready = infinity.get("ready") is True
     chunk_ready = counter_ready and chunk_health.get("ready") is True
     index_ready = chunk_ready and model_ready and qdrant.get("ready") is True
-    return {"status": "ok", "model_ready": model_ready, "infinity": infinity,
+    manifest = getattr(runtime, "manifest", None)
+    worker = getattr(manifest, "worker_ready", None)
+    def configured(key):
+        value = os.getenv(key)
+        return bool(value and Path(value).exists())
+
+    return {"status": "ok", "model_ready": model_ready,
+            "worker": {"ready": worker() if callable(worker) else None},
+            "ocr": {"tesseract": bool(shutil.which("tesseract") or configured("BEAR_TESSERACT")),
+                    "paddleocr": configured("BEAR_PADDLE_PYTHON") and configured("BEAR_PADDLE_MODELS"),
+                    "docling": configured("BEAR_DOCLING_PYTHON") and configured("BEAR_DOCLING_ARTIFACTS")}, "infinity": infinity,
             "qdrant": qdrant, "dedoc": dedoc, "chunker": chunk_health,
             "capabilities": {"parse": parser is not None, "chunk": chunk_ready,
                              "index": index_ready, "search": index_ready}}
