@@ -1,6 +1,7 @@
 import codecs
 import hashlib
 import re
+from importlib.util import find_spec
 from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
@@ -270,6 +271,11 @@ class ParsingPipeline:
             ".xlsx": XlsxParser(self.limits), ".xls": XlsParser(self.limits), ".xml": XmlParser(self.limits),
         }
         self.allow_cp1251 = allow_cp1251
+        if find_spec("bear_fusion") is not None and find_spec("PIL") is not None:
+            from bear_fusion.image_adapter import ImageParser
+
+            image_parser = ImageParser(self.limits, asset_dir, object_storage)
+            self.parsers.update({suffix: image_parser for suffix in (".png", ".jpg", ".jpeg")})
         self.parsers.update(extra_parsers or {})
 
     def parse(self, data: bytes, context: DocumentContext) -> ParsedDocument:

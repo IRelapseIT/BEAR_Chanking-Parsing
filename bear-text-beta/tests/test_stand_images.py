@@ -1,4 +1,5 @@
 import io
+import shutil
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -24,7 +25,7 @@ def make_ocr_image(format, *, orientation=1, phrase="BEAR SCAN CHECK"):
     return buffer.getvalue()
 
 
-def test_standalone_image_not_registered_without_ocr_package(tmp_path):
+def test_standalone_images_use_common_parser_registry(tmp_path):
     pipeline = ParsingPipeline(tmp_path)
     assert set(pipeline.parsers) >= {".png", ".jpg", ".jpeg"}
 
@@ -80,3 +81,17 @@ def test_image_pixel_budget(tmp_path, context):
         ParsingPipeline(tmp_path, limits=FileLimits(max_image_pixels=1000)).parse(
             make_ocr_image("PNG"), replace(context, filename="image.png"),
         )
+
+
+def test_tesseract_raster_without_mock(tmp_path, context, monkeypatch):
+    executable = shutil.which("tesseract")
+    if not executable:
+        pytest.skip("No local Tesseract")
+    languages = subprocess.run([executable, "--list-langs"], capture_output=True, text=True, timeout=10, check=True)
+    if not {"eng", "rus"} <= set(languages.stdout.splitlines()):
+        pytest.skip("Tesseract needs eng and rus")
+    monkeypatch.setenv("BEAR_TESSERACT", executable)
+    parsed = ParsingPipeline(tmp_path).parse(make_ocr_image("PNG"), replace(context, filename="scan.png"))
+    assert "BEAR SCAN CHECK" in "\n".join(block.text for block in parsed.blocks if block.type == "TEXT")
+    assert all(block.source.bbox and block.metadata["engine"] == "tesseract"
+               for block in parsed.blocks if block.type == "TEXT")

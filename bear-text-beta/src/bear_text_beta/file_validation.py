@@ -27,6 +27,9 @@ MIME_TYPES = {
     ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ".xls": "application/vnd.ms-excel",
     ".xml": "application/xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
 }
 XLS_SIGNATURE = bytes.fromhex("D0 CF 11 E0 A1 B1 1A E1")
 SPREADSHEET_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -47,6 +50,7 @@ class FileLimits:
     max_text_chars: int = 10_000_000
     max_table_inline_bytes: int = 1024 * 1024
     max_table_cells: int = 100_000
+    max_image_pixels: int = 30_000_000
 
     def __post_init__(self) -> None:
         if any(value <= 0 for value in vars(self).values()):
@@ -92,7 +96,10 @@ class FileValidator:
 
     ALLOWED = set(MIME_TYPES)
     TEXT_EXTENSIONS = {".txt", ".md", ".html", ".htm", ".csv", ".tsv"}
-    SIGNATURES = {".docx": b"PK\x03\x04", ".xlsx": b"PK\x03\x04", ".xls": XLS_SIGNATURE}
+    SIGNATURES = {
+        ".docx": b"PK\x03\x04", ".xlsx": b"PK\x03\x04", ".xls": XLS_SIGNATURE,
+        ".png": b"\x89PNG\r\n\x1a\n", ".jpg": b"\xff\xd8\xff", ".jpeg": b"\xff\xd8\xff",
+    }
 
     def __init__(self, limits: FileLimits | None = None, allowed_extensions: set[str] | None = None):
         self.limits = limits or FileLimits()
