@@ -70,15 +70,15 @@ class QdrantVectorStore:
         existing = schema()
         try:
             if existing is None:
-                self.request("PUT", f"{path}/vectors/{quote(name, safe='')}",
-                             json={"sparse": {"modifier": "idf"}})
+                # Qdrant's global IDF can change scoped scores when another tenant adds points.
+                self.request("PUT", f"{path}/vectors/{quote(name, safe='')}", json={"sparse": {}})
         except StorageError:
             # Another worker may have added the same name between GET and PUT.
             existing = schema()
             if existing is None:
                 raise
         if existing is not None and (not isinstance(existing, dict) or
-                                      str(existing.get("modifier")).lower() != "idf"):
+                                      str(existing.get("modifier")).lower() != "none"):
             raise StorageError("Несовместимая схема sparse-вектора Qdrant")
         self._sparse_ready = True
 
