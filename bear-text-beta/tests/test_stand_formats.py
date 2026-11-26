@@ -41,7 +41,7 @@ def test_delimited_workbook_encodings(tmp_path, context, suffix, value, delimite
 def test_delimited_rejects_bad_encoding_and_malformed_quotes(tmp_path, context):
     ctx = replace(context, filename="entries.csv")
     with pytest.raises(ParseError, match="кодировк"):
-        ParsingPipeline(tmp_path).parse(b"\x9f", ctx)
+        ParsingPipeline(tmp_path).parse(b"\x9f", replace(ctx))
     with pytest.raises(ParseError, match="CSV"):
         ParsingPipeline(tmp_path).parse(b'first,"unterminated\r\n', ctx)
 
@@ -100,9 +100,9 @@ def test_xlsx_preserves_sheets_merged_cells_hidden_flags_and_typed_values(tmp_pa
 def test_xlsx_validates_archive_and_actual_text_size(tmp_path, context):
     ctx = replace(context, filename="rates.xlsx")
     with pytest.raises(ParseError, match="XLSX"):
-        ParsingPipeline(tmp_path).parse(b"not a workbook", ctx)
+        ParsingPipeline(tmp_path).parse(b"not a workbook", replace(ctx))
     with pytest.raises(ParseError, match="лимит"):
-        ParsingPipeline(tmp_path, limits=FileLimits(max_docx_uncompressed_bytes=200)).parse(make_xlsx(), ctx)
+        ParsingPipeline(tmp_path, limits=FileLimits(max_docx_uncompressed_bytes=200)).parse(make_xlsx(), replace(ctx))
     with pytest.raises(ParseError, match="лимит"):
         ParsingPipeline(tmp_path, limits=FileLimits(max_text_chars=8)).parse(make_xlsx(), ctx)
 

@@ -11,7 +11,27 @@ from pathlib import Path
 from typing import BinaryIO, Protocol
 from xml.etree import ElementTree
 
+from lxml import etree
+
 from .errors import ParseError
+
+MIME_TYPES = {
+    ".txt": "text/plain",
+    ".md": "text/markdown",
+    ".html": "text/html",
+    ".htm": "text/html",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".pdf": "application/pdf",
+    ".csv": "text/csv",
+    ".tsv": "text/tab-separated-values",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ".xls": "application/vnd.ms-excel",
+    ".xml": "application/xml",
+}
+XLS_SIGNATURE = bytes.fromhex("D0 CF 11 E0 A1 B1 1A E1")
+SPREADSHEET_NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+CONTENT_TYPE_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
+XLSX_MAIN_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"
 
 
 @dataclass(frozen=True)
@@ -26,6 +46,7 @@ class FileLimits:
     max_blocks: int = 100_000
     max_text_chars: int = 10_000_000
     max_table_inline_bytes: int = 1024 * 1024
+    max_table_cells: int = 100_000
 
     def __post_init__(self) -> None:
         if any(value <= 0 for value in vars(self).values()):
@@ -69,8 +90,9 @@ class BoundedHashingReader:
 class FileValidator:
     """Validate while ObjectStorage performs its already necessary upload read."""
 
-    ALLOWED = {".txt", ".md", ".html", ".htm", ".docx"}
-    TEXT_EXTENSIONS = {".txt", ".md", ".html", ".htm"}
+    ALLOWED = set(MIME_TYPES)
+    TEXT_EXTENSIONS = {".txt", ".md", ".html", ".htm", ".csv", ".tsv"}
+    SIGNATURES = {".docx": b"PK\x03\x04", ".xlsx": b"PK\x03\x04", ".xls": XLS_SIGNATURE}
 
     def __init__(self, limits: FileLimits | None = None, allowed_extensions: set[str] | None = None):
         self.limits = limits or FileLimits()
@@ -89,8 +111,11 @@ class FileValidator:
             checksum = reader.digest.hexdigest()
             if expected_checksum and expected_checksum != checksum:
                 raise ParseError("Checksum не соответствует содержимому файла")
-            if suffix == ".docx" and bytes(reader.prefix[:4]) != b"PK\x03\x04":
-                raise ParseError("DOCX не является ZIP-архивом")
+            signature = self.SIGNATURES.get(suffix)
+            if signature and not reader.prefix.startswith(signature):
+                if suffix == ".docx":
+                    raise ParseError("DOCX не является ZIP-архивом")
+                raise ParseError(f"Содержимое не соответствует сигнатуре {suffix[1:].upper()}")
             unicode_bom = bytes(reader.prefix).startswith((codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE,
                                                          codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE))
             if suffix in self.TEXT_EXTENSIONS and b"\x00" in reader.prefix and not unicode_bom:
@@ -155,3 +180,81 @@ class FileValidator:
                             raise ParseError("DOCX сообщает число страниц выше лимита")
         except (zipfile.BadZipFile, KeyError, ElementTree.ParseError, RuntimeError) as exc:
             raise ParseError("Повреждённый или неподдерживаемый DOCX") from exc
+
+    def validate_xlsx(self, data: bytes) -> None:
+        if len(data) > self.limits.max_file_bytes:
+            raise ParseError("XLSX превышает лимит размера файла")
+        if not data.startswith(self.SIGNATURES[".xlsx"]):
+            raise ParseError("XLSX не является ZIP-архивом")
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                entries = archive.infolist()
+                if len(entries) > self.limits.max_docx_entries:
+                    raise ParseError("XLSX превышает лимит ZIP-элементов")
+                names = {entry.filename for entry in entries}
+                if len(names) != len(entries) or not {"[Content_Types].xml", "xl/workbook.xml"} <= names:
+                    raise ParseError("XLSX не содержит однозначного каталога книги")
+                total = 0
+                expanded_budget = XlsxArchiveBudget(self.limits.max_table_cells)
+                for entry in entries:
+                    name = entry.filename
+                    if (entry.flag_bits & 1 or name.startswith("/") or "\\" in name
+                            or ".." in name.split("/") or ":" in name):
+                        raise ParseError("Неподдерживаемая запись в XLSX")
+                    if entry.is_dir():
+                        continue
+                    if total + entry.file_size > self.limits.max_docx_uncompressed_bytes:
+                        raise ParseError("XLSX превышает лимит распакованного содержимого")
+                    is_xml = name.endswith((".xml", ".rels"))
+                    expanded_budget.is_manifest = name == "[Content_Types].xml"
+                    parser = xml_parser(target=expanded_budget) if is_xml else None
+                    with archive.open(entry) as source:
+                        while chunk := source.read(1024 * 1024):
+                            total += len(chunk)
+                            if total > self.limits.max_docx_uncompressed_bytes:
+                                raise ParseError("XLSX превышает лимит распаковки")
+                            if parser is not None:
+                                parser.feed(chunk)
+                    if parser is not None:
+                        parser.close()
+                if not expanded_budget.is_xlsx:
+                    raise ParseError("Файл Excel не объявлен обычной книгой XLSX")
+        except (zipfile.BadZipFile, OSError, etree.XMLSyntaxError, RuntimeError, ValueError) as exc:
+            raise ParseError("Повреждённый или неподдерживаемый XLSX") from exc
+
+
+def xml_parser(**kwargs):
+    return etree.XMLParser(resolve_entities=False, load_dtd=False, no_network=True, huge_tree=False, **kwargs)
+
+
+class XlsxArchiveBudget:
+    """Count real cells and merge expansion before OpenPyXL materializes worksheets."""
+
+    def __init__(self, maximum):
+        self.maximum = maximum
+        self.cells = 0
+        self.merged_cells = 0
+        self.is_manifest = False
+        self.is_xlsx = False
+
+    def doctype(self, name, public_id, system_id):
+        raise ParseError("DTD внутри XLSX запрещена")
+
+    def start(self, tag, attrs):
+        if tag == f"{{{SPREADSHEET_NS}}}c":
+            self.cells += 1
+        elif tag == f"{{{SPREADSHEET_NS}}}mergeCell":
+            from openpyxl.utils.cell import range_boundaries
+
+            left, top, right, bottom = range_boundaries(attrs["ref"])
+            if not 0 < left <= right <= 16384 or not 0 < top <= bottom <= 1048576:
+                raise ParseError("Некорректный диапазон объединения XLSX")
+            self.merged_cells += (right - left + 1) * (bottom - top + 1) - 1
+        elif (self.is_manifest and tag == f"{{{CONTENT_TYPE_NS}}}Override"
+              and attrs.get("PartName") == "/xl/workbook.xml" and attrs.get("ContentType") == XLSX_MAIN_TYPE):
+            self.is_xlsx = True
+        if self.cells + self.merged_cells > self.maximum:
+            raise ParseError("XLSX превышает лимит ячеек с учётом объединений")
+
+    def close(self):
+        return None

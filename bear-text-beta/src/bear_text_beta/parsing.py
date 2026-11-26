@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup, Comment, NavigableString, Tag
 from markdown_it import MarkdownIt
 
 from .errors import ParseError, ValidationError
-from .file_validation import FileLimits, FileValidator, ObjectStorage
+from .file_validation import MIME_TYPES, FileLimits, FileValidator, ObjectStorage
 from .models import Attachment, ContentBlock, DocumentContext, ParsedDocument, SourceLocator
 from .ports import DocumentParser
 
@@ -253,6 +253,9 @@ class ParsingPipeline:
                  extra_parsers: dict[str, DocumentParser] | None = None,
                  dedoc_client: DocumentParser | None = None, limits: FileLimits | None = None,
                  object_storage: ObjectStorage | None = None):
+        from .tabular_parsing import DelimitedParser, XlsParser, XlsxParser
+        from .xml_parsing import XmlParser
+
         self.limits = limits or FileLimits(max_file_bytes=max_file_bytes)
         self.max_file_bytes = self.limits.max_file_bytes
         if dedoc_client is None:
@@ -262,6 +265,9 @@ class ParsingPipeline:
         self.parsers = {
             ".txt": TXTParser(allow_cp1251), ".md": MDParser(allow_cp1251),
             ".html": HTMLParser(allow_cp1251), ".htm": HTMLParser(allow_cp1251), ".docx": dedoc_client,
+            ".csv": DelimitedParser(".csv", self.limits, allow_cp1251),
+            ".tsv": DelimitedParser(".tsv", self.limits, allow_cp1251),
+            ".xlsx": XlsxParser(self.limits), ".xls": XlsParser(self.limits), ".xml": XmlParser(self.limits),
         }
         self.allow_cp1251 = allow_cp1251
         self.parsers.update(extra_parsers or {})
@@ -280,10 +286,7 @@ class ParsingPipeline:
         if context.checksum and checksum != context.checksum:
             raise ParseError("Checksum не соответствует содержимому файла")
         context.checksum = checksum
-        context.mime_type = {".txt": "text/plain", ".md": "text/markdown", ".html": "text/html",
-                             ".htm": "text/html", ".docx":
-                             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}.get(
-                                 suffix, context.mime_type)
+        context.mime_type = MIME_TYPES.get(suffix, context.mime_type)
         parse_data = data
         decode_warnings = []
         if suffix in {".txt", ".html", ".htm"} and self.parsers[suffix] is self.parsers[".docx"]:
