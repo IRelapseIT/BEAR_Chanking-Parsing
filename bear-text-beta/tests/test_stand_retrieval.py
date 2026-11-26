@@ -223,8 +223,8 @@ def test_qdrant_old_collection_gains_optional_sparse_vectors(parsed, chunker, pr
             case "":
                 return httpx.Response(200, json={"result": {"config": {"params": config}}})
             case "/vectors/lexical_v1":
-                assert body == {"sparse": {"modifier": "idf"}}
-                config["sparse_vectors"] = {"lexical_v1": {"modifier": "idf"}}
+                assert body == {"sparse": {}}
+                config["sparse_vectors"] = {"lexical_v1": {}}
             case "/points":
                 points.update({point["id"]: point for point in body["points"]})
             case "/points/count":
@@ -260,7 +260,7 @@ def test_sparse_write_failure_retries_dense_points(parsed, chunker, profile):
         if request.method == "GET":
             return httpx.Response(200, json={"result": {"config": {"params": {
                 "vectors": {"size": 4, "distance": "Cosine"},
-                "sparse_vectors": {"lexical_v1": {"modifier": "idf"}},
+                "sparse_vectors": {"lexical_v1": {}},
             }}}})
         writes.append(data["points"][0]["vector"])
         return httpx.Response(400 if isinstance(writes[-1], dict) else 200, json={"result": {}})
@@ -297,7 +297,7 @@ def test_live_bge_m3_dense_sparse_hybrid(tmp_path, monkeypatch):
             assert services.profile.model_id == "BAAI/bge-m3"
             assert services.indexer.index(result)["status"] == "indexed"
             query = "Арктический договор"
-            modes = {}
+            modes, sparse_score = {}, None
             for mode in ("dense", "sparse", "hybrid"):
                 response = services.indexer.search_detailed(query, "t", "s", document_ids=["arctic"], mode=mode)
                 assert response["hits"][0]["payload"]["text"] == text
@@ -305,11 +305,19 @@ def test_live_bge_m3_dense_sparse_hybrid(tmp_path, monkeypatch):
                 modes[mode] = response["trace"]["timings_ms"]
                 if mode != "dense":
                     assert response["trace"]["sparse_coverage"] == {"indexed_points": 1, "total_points": 1}
+                if mode == "sparse":
+                    sparse_score = response["hits"][0]["score"]
                 if mode == "hybrid":
                     assert response["trace"]["fusion"][0]["dense_rank"] == 1
                     assert response["trace"]["fusion"][0]["sparse_rank"] == 1
             assert not services.indexer.search_detailed(query, "other-tenant", "s")["hits"]
             assert not services.indexer.search_detailed(query, "t", "s", document_ids=["other-doc"])["hits"]
+            foreign = DocumentContext("other-tenant", "s", "foreign", 1, "other.txt")
+            foreign_result = services.process(text.encode(), foreign, ProcessingProfile())
+            services.indexer.index(foreign_result)
+            after = services.indexer.search_detailed(query, "t", "s", mode="sparse")
+            assert len(after["hits"]) == 1
+            assert after["hits"][0]["score"] == pytest.approx(sparse_score)
             print(json.dumps({"embedding": services.profile.model_id, "dimension": services.profile.vector_dimension,
                               "modes_ms": modes}, ensure_ascii=False))
         finally:
